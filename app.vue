@@ -1,5 +1,5 @@
 <template>
-  <div class="font-sans text-text-body bg-background min-h-screen">
+  <div class="font-geist text-[#171717] bg-white min-h-screen">
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
@@ -23,7 +23,7 @@ useHead({
     },
     {
       rel: 'stylesheet',
-      href: 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'
+      href: 'https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap'
     }
   ]
 })

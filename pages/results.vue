@@ -1,13 +1,13 @@
 <template>
-  <div class="min-h-screen bg-background">
-    <header class="bg-white shadow-lg border-b border-gray-100">
+  <div class="min-h-screen bg-white">
+    <header class="bg-white shadow-border">
       <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
         <div>
-          <h1 class="text-4xl font-bold text-text-heading">Protospec Quote</h1>
-          <p class="mt-2 text-text-body leading-relaxed">Your software development quotation</p>
+          <h1 class="text-display-hero text-black">Protospec Quote</h1>
+          <p class="mt-2 text-body text-secondary">Your software development quotation</p>
         </div>
         <nav class="hidden md:block">
-          <a href="/settings" class="text-primary hover:text-primary/80 font-medium transition-colors">
+          <a href="/settings" class="text-link hover:text-purple font-medium transition-colors">
             Settings
           </a>
         </nav>
@@ -16,36 +16,36 @@
     <main>
       <div class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
         <div class="px-4 py-6 sm:px-0">
-          <div class="bg-white shadow-lg rounded-xl p-6 md:p-8">
+          <div class="bg-white rounded-md p-6 md:p-8 shadow-card">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
               <div>
-                <h2 class="text-3xl font-bold text-text-heading">{{ quote.clientName }} Project</h2>
-                <p class="text-text-body mt-2">Generated on {{ formatDate(new Date()) }}</p>
-                <div v-if="quote.aiPowered" class="mt-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <h2 class="text-subheading-large text-black">{{ quote.clientName }} Project</h2>
+                <p class="text-body-small text-tertiary mt-2">Generated on {{ formatDate(new Date()) }}</p>
+                <div v-if="quote.aiPowered" class="mt-2 inline-flex items-center px-3 py-1 rounded-pill text-caption font-medium bg-purple-light text-purple-text">
                   AI-powered estimation
                   <span v-if="quote.confidenceScore !== undefined" class="ml-2">
                     ({{ Math.round(quote.confidenceScore * 100) }}% confidence)
                   </span>
                 </div>
-                <div v-else class="mt-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                <div v-else class="mt-2 inline-flex items-center px-3 py-1 rounded-pill text-caption font-medium bg-purple-light/50 text-tertiary">
                   Rule-based estimation
                 </div>
               </div>
               <div class="text-right mt-4 md:mt-0">
-                <p class="text-4xl font-bold text-accent">RM {{ quote.totalCostMYR.toLocaleString() }}</p>
-                <p class="text-base text-text-body mt-2">{{ quote.totalEstimatedHours }} hours estimated</p>
+                <p class="text-display-hero font-semibold text-purple">RM {{ quote.totalCostMYR.toLocaleString() }}</p>
+                <p class="text-body-small text-secondary mt-2">{{ quote.totalEstimatedHours }} hours estimated</p>
               </div>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div class="border border-gray-200 rounded-xl p-6 shadow-sm">
-                <h3 class="font-medium text-text-heading text-lg mb-3">Project Summary</h3>
-                <p class="text-text-body text-base leading-relaxed">{{ quote.requirements }}</p>
+              <div class="rounded-md p-6 shadow-card">
+                <h3 class="font-medium text-card-title text-black mb-4">Project Summary</h3>
+                <p class="text-body text-secondary">{{ quote.requirements }}</p>
               </div>
-              <div class="border border-gray-200 rounded-xl p-6 shadow-sm">
-                <h3 class="font-medium text-text-heading text-lg mb-3">Rate Card</h3>
-                <p class="text-text-body text-base mb-4">Malaysian SME Standard</p>
-                <div class="text-sm text-text-body space-y-2">
+              <div class="rounded-md p-6 shadow-card">
+                <h3 class="font-medium text-card-title text-black mb-4">Rate Card</h3>
+                <p class="text-body text-secondary mb-4">Malaysian SME Standard</p>
+                <div class="text-body-small text-secondary space-y-2">
                   <p>Frontend (Mid): RM 65/hour</p>
                   <p>Backend (Mid): RM 70/hour</p>
                   <p>Fullstack (Mid): RM 75/hour</p>
@@ -54,23 +54,23 @@
             </div>
             
             <div class="mb-8">
-              <h3 class="font-medium text-text-heading text-2xl mb-4">Requirements Analysis</h3>
+              <h3 class="font-medium text-section-heading text-black mb-6">Requirements Analysis</h3>
               <div class="space-y-4">
                 <div v-for="(req, index) in quote.requirementsAnalysis" :key="index" 
-                     class="flex items-start border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                  <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-primary/10 rounded-full mr-4 min-w-[40px] min-h-[40px]">
-                    <span class="text-primary font-medium text-base">{{ index + 1 }}</span>
+                     class="flex items-start pb-4 last:border-0 last:pb-0">
+                  <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-purple/10 rounded-full mr-4 min-w-[40px] min-h-[40px]">
+                    <span class="text-purple font-medium text-body-small">{{ index + 1 }}</span>
                   </div>
                   <div class="flex-1">
-                    <p class="text-text-heading text-base">{{ req.description }}</p>
-                    <div class="flex flex-wrap items-center mt-2 gap-3">
-                      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-text-heading">
+                    <p class="text-body text-black">{{ req.description }}</p>
+                    <div class="flex flex-wrap items-center mt-3 gap-3">
+                      <span class="inline-flex items-center px-3 py-1 rounded-pill text-caption font-medium bg-purple-light text-purple-text">
                         {{ req.category }}
                       </span>
-                      <span class="text-sm text-text-body">
+                      <span class="text-body-small text-tertiary">
                         Complexity: {{ req.complexityScore }}
                       </span>
-                      <span v-if="req.hours" class="text-sm text-text-body">
+                      <span v-if="req.hours" class="text-body-small text-tertiary">
                         {{ req.hours }} hours
                       </span>
                     </div>
@@ -82,13 +82,13 @@
             <div class="flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4">
               <button
                 @click="goBack"
-                class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-xl text-text-heading bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm min-h-[44px]"
+                class="inline-flex items-center px-6 py-3 text-button font-medium rounded-md text-black bg-white hover:bg-purple-light/50 focus:outline-focus focus:ring-4 focus:ring-ring shadow-card min-h-[44px]"
               >
                 Edit Requirements
               </button>
               <button
                 @click="downloadPDF"
-                class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-lg text-white bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent transition-all duration-200 min-h-[44px]"
+                class="inline-flex items-center px-6 py-3 text-button font-medium rounded-md text-white bg-purple hover:bg-purple-dark focus:outline-focus focus:ring-4 focus:ring-ring shadow-card min-h-[44px]"
               >
                 Download PDF Quote
               </button>

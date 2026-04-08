@@ -1,13 +1,13 @@
 <template>
-  <div class="min-h-screen bg-background">
-    <header class="bg-white shadow-lg border-b border-gray-100">
+  <div class="min-h-screen bg-white">
+    <header class="bg-white shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08)]">
       <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
         <div>
-          <h1 class="text-4xl font-bold text-text-heading">Protospec</h1>
-          <p class="mt-2 text-text-body leading-relaxed">Generate accurate software development quotations for Malaysian SMEs</p>
+          <h1 class="text-display-hero text-black">Protospec</h1>
+          <p class="mt-2 text-body-large text-secondary">Generate accurate software development quotations for Malaysian SMEs</p>
         </div>
         <nav class="hidden md:block">
-          <a href="/settings" class="text-primary hover:text-primary/80 font-medium transition-colors">
+          <a href="/settings" class="text-link hover:text-link/80 font-medium transition-colors text-button">
             Settings
           </a>
         </nav>
@@ -16,12 +16,12 @@
     <main>
       <div class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
         <div class="px-4 py-6 sm:px-0">
-          <div class="bg-white shadow-lg rounded-xl p-6 md:p-8 relative">
-            <h2 class="text-3xl font-semibold text-text-heading mb-6">Enter Project Requirements</h2>
+          <div class="bg-white rounded-md p-6 md:p-8 relative shadow-card">
+            <h2 class="text-subheading-large text-black mb-8">Enter Project Requirements</h2>
             
             <!-- Template Selection -->
             <div class="mb-8">
-              <label class="block text-base font-medium text-text-heading mb-4">
+              <label class="block text-body-medium text-black mb-4">
                 Start with a template (optional)
               </label>
               <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -30,57 +30,57 @@
                   :key="template.id"
                   @click="applyTemplateToForm(template.id)"
                   type="button"
-                  class="text-left p-4 border border-gray-200 rounded-xl shadow-sm hover:border-primary hover:shadow-md transition-all duration-200 bg-white min-h-[80px] flex flex-col justify-center hover:bg-blue-50"
+                  class="text-left p-4 rounded-md shadow-border hover:shadow-md transition-all duration-200 bg-white min-h-[80px] flex flex-col justify-center hover:bg-[rgba(0,0,0,0.02)]"
                 >
-                  <div class="font-medium text-text-heading text-base">{{ template.name }}</div>
-                  <div class="text-sm text-text-body mt-2">{{ template.description }}</div>
+                  <div class="font-medium text-black text-body-medium">{{ template.name }}</div>
+                  <div class="text-caption text-tertiary mt-2">{{ template.description }}</div>
                 </button>
               </div>
             </div>
             
             <form @submit.prevent="generateQuote">
               <div class="mb-6">
-                <label for="clientName" class="block text-base font-medium text-text-heading mb-2">
+                <label for="clientName" class="block text-body-medium text-black mb-2">
                   Client Name
                 </label>
                 <input
                   id="clientName"
                   v-model="formData.clientName"
                   type="text"
-                  class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base"
+                  class="w-full px-4 py-2 rounded-md shadow-border focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] text-body-small"
                   placeholder="Enter client name"
                 />
               </div>
               <div class="mb-6">
-                <label for="requirements" class="block text-base font-medium text-text-heading mb-2">
+                <label for="requirements" class="block text-body-medium text-black mb-2">
                   Project Requirements
                 </label>
                 <textarea
                   id="requirements"
                   v-model="formData.requirements"
                   rows="6"
-                  class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base leading-relaxed"
+                  class="w-full px-4 py-2 rounded-md shadow-border focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] text-mono-body leading-relaxed"
                   placeholder="Describe your project requirements in detail..."
                 ></textarea>
-                <p class="mt-3 text-sm text-text-body">
+                <p class="mt-3 text-caption text-secondary">
                   Be as specific as possible about features, integrations, and technical requirements.
                 </p>
               </div>
               
               <!-- Real-time Cost Preview -->
-              <div v-if="costPreview" class="mb-6 p-4 bg-accent/10 border border-accent/20 rounded-xl">
+              <div v-if="costPreview" class="mb-6 p-4 bg-purple-light rounded-md shadow-border">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center space-x-2">
-                    <span class="text-base font-medium text-accent">Live Cost Estimate</span>
-                    <span v-if="costPreview.aiPowered" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <span class="text-body-medium text-purple-text">Live Cost Estimate</span>
+                    <span v-if="costPreview.aiPowered" class="inline-flex items-center px-2 py-1 rounded-pill text-caption font-medium bg-success/10 text-success">
                       AI-powered
                     </span>
                   </div>
-                  <span class="text-2xl font-bold text-accent">RM {{ costPreview.totalCostMYR.toLocaleString() }}</span>
+                  <span class="text-card-title font-bold text-purple-text">RM {{ costPreview.totalCostMYR.toLocaleString() }}</span>
                 </div>
-                <div class="text-base text-accent mt-2">
+                <div class="text-body-medium text-purple-text mt-2">
                   Estimated {{ costPreview.totalEstimatedHours }} hours
-                  <span v-if="costPreview.confidenceScore !== undefined" class="ml-2 text-sm">
+                  <span v-if="costPreview.confidenceScore !== undefined" class="ml-2 text-caption">
                     (Confidence: {{ Math.round(costPreview.confidenceScore * 100) }}%)
                   </span>
                 </div>
@@ -89,7 +89,7 @@
               <div class="flex justify-end">
                 <button
                   type="submit"
-                  class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-primary hover:bg-primary/95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50 transition-all duration-200 min-h-[44px] shadow-sm hover:shadow-md"
+                  class="inline-flex items-center px-4 py-2 rounded-md text-button font-medium text-white bg-purple hover:bg-purple-dark focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] transition-all duration-200 min-h-[44px] shadow-border hover:shadow-md"
                   :disabled="isGenerating || !formData.requirements.trim()"
                 >
                   <span v-if="!isGenerating">Generate Quote</span>
