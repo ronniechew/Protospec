@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  /* Ensure proper viewport scaling */
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  
+  /* Optimize form elements for touch */
+  input[type="text"],
+  textarea {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+    padding: 12px;
+    min-height: 44px; /* Minimum touch target size */
+  }
+  
+  textarea {
+    min-height: 120px;
+  }
+  
+  /* Template buttons - stack vertically on mobile */
+  .template-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Optimize button sizes for touch */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+  }
+  
+  /* Ensure proper spacing on small screens */
+  .mobile-spacing {
+    margin: 8px 0;
+  }
+  
+  .mobile-padding {
+    padding: 12px;
+  }
+  
+  /* Prevent horizontal scrolling */
+  body {
+    overflow-x: hidden;
+  }
+  
+  .container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+/* Improve touch targets */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Smooth scrolling for better mobile experience */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide outline on focus for touch devices, but keep for keyboard navigation */
+@media (hover: none) and (pointer: coarse) {
+  *:focus {
+    outline: none;
+  }
+}
+
+/* Ensure PDF download works properly on mobile */
+.pdf-download-btn {
+  width: 100%;
+  margin-top: 12px;
+}
+
+/* Responsive table for results page */
+.responsive-table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.responsive-table table {
+  min-width: 300px;
+}

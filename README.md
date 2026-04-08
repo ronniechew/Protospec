@@ -77,21 +77,25 @@ The Supabase schema includes tables for:
 
 ## Estimation Logic
 
-Protospec uses a hybrid approach combining rule-based estimation with LLM-assisted refinement:
+Protospec uses a comprehensive hybrid approach combining rule-based estimation with LLM-assisted refinement:
 
-- **Rule-based engine**: Provides transparent, explainable estimates using predefined complexity matrices
-- **LLM-assisted refinement**: Analyzes requirements for completeness and suggests adjustments based on historical patterns
-- **Human-in-the-loop**: Estimates above certain thresholds require human review
+- **Rule-based engine**: Provides transparent, explainable estimates using predefined complexity matrices with support for client tiers (startup, growing, enterprise)
+- **LLM-assisted refinement**: Analyzes requirements for completeness, identifies hidden complexities, and suggests adjustments based on pattern recognition from historical projects
+- **Project Complexity Multiplier**: Automatically calculates overall project complexity based on requirement interactions and scope
+- **Seasonal Rate Adjustments**: Supports quarterly rate adjustments for peak demand periods
+- **Historical Project Comparison**: Compares new estimates against similar completed projects for accuracy validation
+- **Enhanced Error Handling**: Comprehensive validation and error reporting throughout the estimation pipeline
 
-This approach prioritizes reversibility by keeping core logic in adjustable rules while enhancing accuracy through LLM insights.
+This approach prioritizes reversibility by keeping core logic in adjustable rules while enhancing accuracy through LLM insights and historical data.
 
 ## Roadmap
 
-- [ ] Implement PDF generation with professional templates
-- [ ] Add LLM integration for requirement analysis
+- [x] Implement PDF generation with professional templates
+- [x] Add LLM integration for requirement analysis
 - [ ] Create admin dashboard for rate card management
 - [ ] Implement client portal for quote tracking
-- [ ] Add historical project comparison features
+- [x] Add historical project comparison features
+- [ ] Enhanced seasonal rate adjustments UI
 
 ## License
 
