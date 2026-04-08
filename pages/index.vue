@@ -74,7 +74,7 @@
               <div class="flex justify-end">
                 <button
                   type="submit"
-                  class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-lg text-white bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 min-h-[44px]"
+                  class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-primary hover:bg-primary/95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50 transition-all duration-200 min-h-[44px] shadow-sm hover:shadow-md"
                   :disabled="isGenerating || !formData.requirements.trim()"
                 >
                   <span v-if="!isGenerating">Generate Quote</span>
