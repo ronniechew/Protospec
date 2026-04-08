@@ -14,23 +14,53 @@
             
             <form @submit.prevent="saveSettings" class="space-y-6">
               <div>
+                <label for="qwenApiKey" class="block text-body-semibold text-primary mb-2">
+                  Qwen API Key (Recommended)
+                </label>
+                <div class="relative">
+                  <input
+                    id="qwenApiKey"
+                    v-model="qwenApiKey"
+                    :type="showQwenApiKey ? 'text' : 'password'"
+                    class="w-full px-3 py-2 pr-12 shadow-[border] rounded-md focus:outline-focus focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0_0_0_4px_rgba(147,197,253,0.5)] text-body-small placeholder:text-placeholder"
+                    placeholder="Enter your Qwen API key (optional)"
+                  />
+                  <button
+                    type="button"
+                    @click="showQwenApiKey = !showQwenApiKey"
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-tertiary hover:text-secondary text-button"
+                  >
+                    <span v-if="showQwenApiKey">Hide</span>
+                    <span v-else>Show</span>
+                  </button>
+                </div>
+                <p class="mt-3 text-caption text-secondary">
+                  Your API key is stored locally in your browser and never sent to our servers.
+                  Get your key from 
+                  <a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" class="text-link hover:underline">
+                    DashScope Console
+                  </a>.
+                </p>
+              </div>
+              
+              <div>
                 <label for="geminiApiKey" class="block text-body-semibold text-primary mb-2">
-                  Gemini API Key
+                  Gemini API Key (Fallback)
                 </label>
                 <div class="relative">
                   <input
                     id="geminiApiKey"
-                    v-model="apiKey"
-                    :type="showApiKey ? 'text' : 'password'"
+                    v-model="geminiApiKey"
+                    :type="showGeminiApiKey ? 'text' : 'password'"
                     class="w-full px-3 py-2 pr-12 shadow-[border] rounded-md focus:outline-focus focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0_0_0_4px_rgba(147,197,253,0.5)] text-body-small placeholder:text-placeholder"
                     placeholder="Enter your Gemini API key (optional)"
                   />
                   <button
                     type="button"
-                    @click="showApiKey = !showApiKey"
+                    @click="showGeminiApiKey = !showGeminiApiKey"
                     class="absolute right-3 top-1/2 transform -translate-y-1/2 text-tertiary hover:text-secondary text-button"
                   >
-                    <span v-if="showApiKey">Hide</span>
+                    <span v-if="showGeminiApiKey">Hide</span>
                     <span v-else>Show</span>
                   </button>
                 </div>
@@ -73,7 +103,7 @@
                 <button
                   type="button"
                   @click="testApiKey"
-                  :disabled="!apiKey.trim() || isTesting"
+                  :disabled="(!qwenApiKey.trim() && !geminiApiKey.trim()) || isTesting"
                   class="inline-flex items-center px-4 py-2 shadow-[border] text-button font-medium rounded-md text-primary bg-white hover:bg-gray-50 focus:outline-focus focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0_0_0_4px_rgba(147,197,253,0.5)] min-h-[36px]"
                 >
                   <span v-if="!isTesting">Test API Key</span>
