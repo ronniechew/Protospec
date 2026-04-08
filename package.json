@@ -1,0 +1,33 @@
+{
+  "name": "protospec",
+  "version": "1.0.0",
+  "description": "A system that consumes raw software requirements and outputs a structured development quotation in MYR, calibrated for the Malaysian SME market.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "start": "node .output/server/index.mjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "quotation",
+    "estimation",
+    "malaysia",
+    "sme",
+    "software-development"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "autoprefixer": "^10.4.27",
+    "nuxt": "^4.4.2",
+    "postcss": "^8.5.9",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.9.3",
+    "vue": "^3.5.32"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.102.1"
+  }
+}
