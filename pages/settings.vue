@@ -193,7 +193,9 @@ const testApiKey = async () => {
       },
       body: JSON.stringify({
         requirements: 'Test requirement for API validation',
-        clientName: 'Test Client'
+        clientName: 'Test Client',
+        qwenApiKey: qwenApiKey.value.trim() || undefined,
+        geminiApiKey: geminiApiKey.value.trim() || undefined
       })
     })
 

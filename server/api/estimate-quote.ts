@@ -41,6 +41,8 @@ async function callQwenAPI(prompt: string, apiKey: string): Promise<string> {
 interface QuoteEstimationRequest {
   requirements: string
   clientName?: string
+  qwenApiKey?: string
+  geminiApiKey?: string
 }
 
 interface QuoteEstimationResponse {
@@ -97,8 +99,9 @@ export default defineEventHandler(async (event) => {
     }
 
     // Try Qwen first, then Gemini, then fallback to rule-based
-    const qwenApiKey = process.env.QWEN_API_KEY
-    const geminiApiKey = process.env.GEMINI_API_KEY
+    // Prioritize request-provided API keys over environment variables
+    const qwenApiKey = body.qwenApiKey || process.env.QWEN_API_KEY
+    const geminiApiKey = body.geminiApiKey || process.env.GEMINI_API_KEY
     
     const prompt = `
 You are an expert software development estimator specializing in Malaysian SME projects. 

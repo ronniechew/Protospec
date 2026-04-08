@@ -125,7 +125,7 @@ const costPreview = ref<{
 
 // Check if API key is available
 const hasApiKey = () => {
-  return !!localStorage.getItem('protospec_gemini_api_key')
+  return !!(localStorage.getItem('protospec_qwen_api_key') || localStorage.getItem('protospec_gemini_api_key'))
 }
 
 // Apply template function
@@ -236,7 +236,9 @@ const generateQuote = async () => {
           },
           body: JSON.stringify({
             requirements: formData.value.requirements,
-            clientName: formData.value.clientName
+            clientName: formData.value.clientName,
+            qwenApiKey: localStorage.getItem('protospec_qwen_api_key') || undefined,
+            geminiApiKey: localStorage.getItem('protospec_gemini_api_key') || undefined
           })
         })
         
