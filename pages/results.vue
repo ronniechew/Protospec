@@ -22,7 +22,7 @@
                 <h2 class="text-subheading-large text-black">{{ quote.clientName }} Project</h2>
                 <p class="text-body-small text-tertiary mt-2">Generated on {{ formatDate(new Date()) }}</p>
                 <div v-if="quote.aiPowered" class="mt-2 inline-flex items-center px-3 py-1 rounded-pill text-caption font-medium bg-purple-light text-purple-text">
-                  AI-powered estimation
+                  {{ quote.modelUsed ? quote.modelUsed.toUpperCase() + '-powered estimation' : 'AI-powered estimation' }}
                   <span v-if="quote.confidenceScore !== undefined" class="ml-2">
                     ({{ Math.round(quote.confidenceScore * 100) }}% confidence)
                   </span>

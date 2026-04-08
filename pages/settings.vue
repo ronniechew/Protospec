@@ -14,23 +14,53 @@
             
             <form @submit.prevent="saveSettings" class="space-y-6">
               <div>
+                <label for="qwenApiKey" class="block text-body-semibold text-primary mb-2">
+                  Qwen API Key (Recommended)
+                </label>
+                <div class="relative">
+                  <input
+                    id="qwenApiKey"
+                    v-model="qwenApiKey"
+                    :type="showQwenApiKey ? 'text' : 'password'"
+                    class="w-full px-3 py-2 pr-12 shadow-[border] rounded-md focus:outline-focus focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0_0_0_4px_rgba(147,197,253,0.5)] text-body-small placeholder:text-placeholder"
+                    placeholder="Enter your Qwen API key (optional)"
+                  />
+                  <button
+                    type="button"
+                    @click="showQwenApiKey = !showQwenApiKey"
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-tertiary hover:text-secondary text-button"
+                  >
+                    <span v-if="showQwenApiKey">Hide</span>
+                    <span v-else>Show</span>
+                  </button>
+                </div>
+                <p class="mt-3 text-caption text-secondary">
+                  Your API key is stored locally in your browser and never sent to our servers.
+                  Get your key from 
+                  <a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" class="text-link hover:underline">
+                    DashScope Console
+                  </a>.
+                </p>
+              </div>
+              
+              <div>
                 <label for="geminiApiKey" class="block text-body-semibold text-primary mb-2">
-                  Gemini API Key
+                  Gemini API Key (Fallback)
                 </label>
                 <div class="relative">
                   <input
                     id="geminiApiKey"
-                    v-model="apiKey"
-                    :type="showApiKey ? 'text' : 'password'"
+                    v-model="geminiApiKey"
+                    :type="showGeminiApiKey ? 'text' : 'password'"
                     class="w-full px-3 py-2 pr-12 shadow-[border] rounded-md focus:outline-focus focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0_0_0_4px_rgba(147,197,253,0.5)] text-body-small placeholder:text-placeholder"
                     placeholder="Enter your Gemini API key (optional)"
                   />
                   <button
                     type="button"
-                    @click="showApiKey = !showApiKey"
+                    @click="showGeminiApiKey = !showGeminiApiKey"
                     class="absolute right-3 top-1/2 transform -translate-y-1/2 text-tertiary hover:text-secondary text-button"
                   >
-                    <span v-if="showApiKey">Hide</span>
+                    <span v-if="showGeminiApiKey">Hide</span>
                     <span v-else>Show</span>
                   </button>
                 </div>
@@ -122,25 +152,31 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-const apiKey = ref('')
-const showApiKey = ref(false)
+const qwenApiKey = ref('')
+const geminiApiKey = ref('')
+const showQwenApiKey = ref(false)
+const showGeminiApiKey = ref(false)
 const isTesting = ref(false)
 const isSaving = ref(false)
 const apiKeyStatus = ref<boolean | null>(null)
 const apiKeyStatusMessage = ref('')
 
 onMounted(() => {
-  // Load existing API key from localStorage
-  const savedKey = localStorage.getItem('protospec_gemini_api_key')
-  if (savedKey) {
-    apiKey.value = savedKey
+  // Load existing API keys from localStorage
+  const savedQwenKey = localStorage.getItem('protospec_qwen_api_key')
+  const savedGeminiKey = localStorage.getItem('protospec_gemini_api_key')
+  if (savedQwenKey) {
+    qwenApiKey.value = savedQwenKey
+  }
+  if (savedGeminiKey) {
+    geminiApiKey.value = savedGeminiKey
   }
 })
 
 const testApiKey = async () => {
-  if (!apiKey.value.trim()) {
+  if (!qwenApiKey.value.trim() && !geminiApiKey.value.trim()) {
     apiKeyStatus.value = false
-    apiKeyStatusMessage.value = 'Please enter an API key first'
+    apiKeyStatusMessage.value = 'Please enter at least one API key first'
     return
   }
 
@@ -149,7 +185,7 @@ const testApiKey = async () => {
   apiKeyStatusMessage.value = ''
 
   try {
-    // Test the API key by making a simple request to our endpoint
+    // Test the API keys by making a simple request to our endpoint
     const response = await fetch('/api/estimate-quote', {
       method: 'POST',
       headers: {
@@ -165,10 +201,10 @@ const testApiKey = async () => {
       const data = await response.json()
       if (data.aiPowered) {
         apiKeyStatus.value = true
-        apiKeyStatusMessage.value = 'API key is valid and working!'
+        apiKeyStatusMessage.value = `AI integration working! Using ${data.modelUsed || 'AI'}.`
       } else {
         apiKeyStatus.value = false
-        apiKeyStatusMessage.value = 'API key may be invalid or server-side configuration is missing'
+        apiKeyStatusMessage.value = 'AI keys may be invalid or server-side configuration is missing'
       }
     } else {
       const errorData = await response.json().catch(() => ({}))
@@ -185,7 +221,9 @@ const testApiKey = async () => {
 }
 
 const clearApiKey = () => {
-  apiKey.value = ''
+  qwenApiKey.value = ''
+  geminiApiKey.value = ''
+  localStorage.removeItem('protospec_qwen_api_key')
   localStorage.removeItem('protospec_gemini_api_key')
   apiKeyStatus.value = null
   apiKeyStatusMessage.value = ''
@@ -195,8 +233,14 @@ const saveSettings = () => {
   isSaving.value = true
   
   try {
-    if (apiKey.value.trim()) {
-      localStorage.setItem('protospec_gemini_api_key', apiKey.value.trim())
+    if (qwenApiKey.value.trim()) {
+      localStorage.setItem('protospec_qwen_api_key', qwenApiKey.value.trim())
+    } else {
+      localStorage.removeItem('protospec_qwen_api_key')
+    }
+    
+    if (geminiApiKey.value.trim()) {
+      localStorage.setItem('protospec_gemini_api_key', geminiApiKey.value.trim())
     } else {
       localStorage.removeItem('protospec_gemini_api_key')
     }
