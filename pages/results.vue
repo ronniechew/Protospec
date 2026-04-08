@@ -1,9 +1,16 @@
 <template>
   <div class="min-h-screen bg-background">
     <header class="bg-white shadow-lg border-b border-gray-100">
-      <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <h1 class="text-4xl font-bold text-text-heading">Protospec Quote</h1>
-        <p class="mt-2 text-text-body leading-relaxed">Your software development quotation</p>
+      <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
+        <div>
+          <h1 class="text-4xl font-bold text-text-heading">Protospec Quote</h1>
+          <p class="mt-2 text-text-body leading-relaxed">Your software development quotation</p>
+        </div>
+        <nav class="hidden md:block">
+          <a href="/settings" class="text-primary hover:text-primary/80 font-medium transition-colors">
+            Settings
+          </a>
+        </nav>
       </div>
     </header>
     <main>
@@ -14,6 +21,15 @@
               <div>
                 <h2 class="text-3xl font-bold text-text-heading">{{ quote.clientName }} Project</h2>
                 <p class="text-text-body mt-2">Generated on {{ formatDate(new Date()) }}</p>
+                <div v-if="quote.aiPowered" class="mt-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  AI-powered estimation
+                  <span v-if="quote.confidenceScore !== undefined" class="ml-2">
+                    ({{ Math.round(quote.confidenceScore * 100) }}% confidence)
+                  </span>
+                </div>
+                <div v-else class="mt-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                  Rule-based estimation
+                </div>
               </div>
               <div class="text-right mt-4 md:mt-0">
                 <p class="text-4xl font-bold text-accent">RM {{ quote.totalCostMYR.toLocaleString() }}</p>
@@ -54,6 +70,9 @@
                       <span class="text-sm text-text-body">
                         Complexity: {{ req.complexityScore }}
                       </span>
+                      <span v-if="req.hours" class="text-sm text-text-body">
+                        {{ req.hours }} hours
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -92,31 +111,43 @@ const quote = ref({
   requirements: 'Build a responsive e-commerce website with user authentication, product catalog, shopping cart, and payment integration.',
   totalEstimatedHours: 120,
   totalCostMYR: 8400,
+  aiPowered: false,
+  confidenceScore: 0.7,
   requirementsAnalysis: [
     {
       description: 'User authentication system with login and registration',
       category: 'Authentication',
-      complexityScore: 1.5
+      complexityScore: 1.5,
+      hours: 25,
+      costMYR: 1750
     },
     {
       description: 'Product catalog with search and filtering',
       category: 'Database',
-      complexityScore: 1.8
+      complexityScore: 1.8,
+      hours: 35,
+      costMYR: 2450
     },
     {
       description: 'Shopping cart functionality',
       category: 'User Interface',
-      complexityScore: 1.2
+      complexityScore: 1.2,
+      hours: 20,
+      costMYR: 1400
     },
     {
       description: 'Payment gateway integration with Stripe',
       category: 'Payment Processing',
-      complexityScore: 2.5
+      complexityScore: 2.5,
+      hours: 30,
+      costMYR: 2100
     },
     {
       description: 'Fully responsive design for mobile and desktop',
       category: 'Mobile Responsiveness',
-      complexityScore: 0.8
+      complexityScore: 0.8,
+      hours: 10,
+      costMYR: 700
     }
   ]
 })
@@ -136,9 +167,23 @@ onMounted(() => {
         const parsedCostPreview = JSON.parse(costPreview)
         quote.value.totalEstimatedHours = parsedCostPreview.totalEstimatedHours
         quote.value.totalCostMYR = parsedCostPreview.totalCostMYR
+        quote.value.aiPowered = parsedCostPreview.aiPowered || false
+        quote.value.confidenceScore = parsedCostPreview.confidenceScore
+        
+        // If we have breakdown from LLM, use it directly
+        if (parsedCostPreview.breakdown && parsedCostPreview.aiPowered) {
+          quote.value.requirementsAnalysis = parsedCostPreview.breakdown.map((item: any) => ({
+            description: item.feature,
+            category: item.feature,
+            complexityScore: item.complexity,
+            hours: item.hours,
+            costMYR: item.costMYR
+          }))
+          return
+        }
       }
       
-      // Generate requirements analysis based on requirements text
+      // Generate requirements analysis based on requirements text (fallback)
       generateRequirementsAnalysis(parsedFormData.requirements)
     } catch (error) {
       console.error('Error loading quote data:', error)

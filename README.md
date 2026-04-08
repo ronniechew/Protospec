@@ -77,21 +77,24 @@ The Supabase schema includes tables for:
 
 ## Estimation Logic
 
-Protospec uses a comprehensive hybrid approach combining rule-based estimation with LLM-assisted refinement:
+Protospec uses a comprehensive hybrid approach combining rule-based estimation with optional AI-powered LLM integration:
 
 - **Rule-based engine**: Provides transparent, explainable estimates using predefined complexity matrices with support for client tiers (startup, growing, enterprise)
-- **LLM-assisted refinement**: Analyzes requirements for completeness, identifies hidden complexities, and suggests adjustments based on pattern recognition from historical projects
+- **AI-powered estimation (optional)**: Uses Google's Gemini API to analyze requirements and provide detailed cost breakdowns with confidence scores
+- **Graceful fallback**: Automatically falls back to rule-based estimation when AI is unavailable or fails
+- **Client-side API key management**: Users can configure their own Gemini API key via the settings page, stored securely in localStorage
 - **Project Complexity Multiplier**: Automatically calculates overall project complexity based on requirement interactions and scope
 - **Seasonal Rate Adjustments**: Supports quarterly rate adjustments for peak demand periods
 - **Historical Project Comparison**: Compares new estimates against similar completed projects for accuracy validation
 - **Enhanced Error Handling**: Comprehensive validation and error reporting throughout the estimation pipeline
 
-This approach prioritizes reversibility by keeping core logic in adjustable rules while enhancing accuracy through LLM insights and historical data.
+This approach prioritizes reversibility by keeping core logic in adjustable rules while enhancing accuracy through optional AI insights.
 
 ## Roadmap
 
 - [x] Implement PDF generation with professional templates
 - [x] Add LLM integration for requirement analysis
+- [x] Implement robust Gemini API integration with settings page
 - [ ] Create admin dashboard for rate card management
 - [ ] Implement client portal for quote tracking
 - [x] Add historical project comparison features

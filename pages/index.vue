@@ -1,15 +1,22 @@
 <template>
   <div class="min-h-screen bg-background">
     <header class="bg-white shadow-lg border-b border-gray-100">
-      <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <h1 class="text-4xl font-bold text-text-heading">Protospec</h1>
-        <p class="mt-2 text-text-body leading-relaxed">Generate accurate software development quotations for Malaysian SMEs</p>
+      <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
+        <div>
+          <h1 class="text-4xl font-bold text-text-heading">Protospec</h1>
+          <p class="mt-2 text-text-body leading-relaxed">Generate accurate software development quotations for Malaysian SMEs</p>
+        </div>
+        <nav class="hidden md:block">
+          <a href="/settings" class="text-primary hover:text-primary/80 font-medium transition-colors">
+            Settings
+          </a>
+        </nav>
       </div>
     </header>
     <main>
       <div class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
         <div class="px-4 py-6 sm:px-0">
-          <div class="bg-white shadow-lg rounded-xl p-6 md:p-8">
+          <div class="bg-white shadow-lg rounded-xl p-6 md:p-8 relative">
             <h2 class="text-3xl font-semibold text-text-heading mb-6">Enter Project Requirements</h2>
             
             <!-- Template Selection -->
@@ -63,11 +70,19 @@
               <!-- Real-time Cost Preview -->
               <div v-if="costPreview" class="mb-6 p-4 bg-accent/10 border border-accent/20 rounded-xl">
                 <div class="flex items-center justify-between">
-                  <span class="text-base font-medium text-accent">Live Cost Estimate</span>
+                  <div class="flex items-center space-x-2">
+                    <span class="text-base font-medium text-accent">Live Cost Estimate</span>
+                    <span v-if="costPreview.aiPowered" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      AI-powered
+                    </span>
+                  </div>
                   <span class="text-2xl font-bold text-accent">RM {{ costPreview.totalCostMYR.toLocaleString() }}</span>
                 </div>
                 <div class="text-base text-accent mt-2">
                   Estimated {{ costPreview.totalEstimatedHours }} hours
+                  <span v-if="costPreview.confidenceScore !== undefined" class="ml-2 text-sm">
+                    (Confidence: {{ Math.round(costPreview.confidenceScore * 100) }}%)
+                  </span>
                 </div>
               </div>
               
@@ -101,7 +116,17 @@ const formData = ref({
 })
 
 const isGenerating = ref(false)
-const costPreview = ref<{ totalEstimatedHours: number; totalCostMYR: number } | null>(null)
+const costPreview = ref<{ 
+  totalEstimatedHours: number; 
+  totalCostMYR: number; 
+  aiPowered?: boolean;
+  confidenceScore?: number;
+} | null>(null)
+
+// Check if API key is available
+const hasApiKey = () => {
+  return !!localStorage.getItem('protospec_gemini_api_key')
+}
 
 // Apply template function
 const applyTemplateToForm = (templateId: string) => {
@@ -109,13 +134,43 @@ const applyTemplateToForm = (templateId: string) => {
 }
 
 // Real-time cost estimation
-const estimateCost = (requirements: string) => {
+const estimateCost = async (requirements: string) => {
   if (!requirements.trim()) {
     costPreview.value = null
     return
   }
   
-  // Simple estimation logic based on word count and keywords
+  // Use LLM if API key is available, otherwise use rule-based
+  if (hasApiKey()) {
+    try {
+      const response = await fetch('/api/estimate-quote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          requirements: requirements,
+          clientName: formData.value.clientName || 'Anonymous'
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        costPreview.value = {
+          totalEstimatedHours: data.estimatedHours,
+          totalCostMYR: data.totalCostMYR,
+          aiPowered: data.aiPowered === true,
+          confidenceScore: data.confidenceScore
+        }
+        return
+      }
+      // If LLM fails, fall back to rule-based
+    } catch (error) {
+      console.warn('LLM estimation failed, falling back to rule-based:', error)
+    }
+  }
+  
+  // Rule-based estimation fallback
   const words = requirements.split(/\s+/).filter(word => word.length > 0).length
   
   // Base hours calculation
@@ -150,13 +205,15 @@ const estimateCost = (requirements: string) => {
   
   costPreview.value = {
     totalEstimatedHours: estimatedHours,
-    totalCostMYR: totalCostMYR
+    totalCostMYR: totalCostMYR,
+    aiPowered: false,
+    confidenceScore: Math.min(0.7, requirements.length / 500) // Max 0.7 for rule-based
   }
 }
 
 // Watch requirements for real-time updates
-watch(() => formData.value.requirements, (newRequirements) => {
-  estimateCost(newRequirements)
+watch(() => formData.value.requirements, async (newRequirements) => {
+  await estimateCost(newRequirements)
 }, { immediate: true })
 
 const generateQuote = async () => {
@@ -167,9 +224,39 @@ const generateQuote = async () => {
   
   isGenerating.value = true
   try {
-    // Store cost preview in localStorage or pass to results page
-    if (costPreview.value) {
-      localStorage.setItem('protospec-cost-preview', JSON.stringify(costPreview.value))
+    // Get final estimation (this ensures we have the most up-to-date estimate)
+    let finalEstimate = costPreview.value
+    if (!finalEstimate || (hasApiKey() && !finalEstimate.aiPowered)) {
+      // If we don't have an estimate or should use LLM but don't have AI-powered result
+      try {
+        const response = await fetch('/api/estimate-quote', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            requirements: formData.value.requirements,
+            clientName: formData.value.clientName
+          })
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          finalEstimate = {
+            totalEstimatedHours: data.estimatedHours,
+            totalCostMYR: data.totalCostMYR,
+            aiPowered: data.aiPowered === true,
+            confidenceScore: data.confidenceScore
+          }
+        }
+      } catch (error) {
+        console.warn('Final LLM estimation failed, using current estimate:', error)
+      }
+    }
+    
+    // Store final estimate in localStorage
+    if (finalEstimate) {
+      localStorage.setItem('protospec-cost-preview', JSON.stringify(finalEstimate))
     }
     localStorage.setItem('protospec-form-data', JSON.stringify(formData.value))
     
