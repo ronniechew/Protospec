@@ -152,25 +152,31 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-const apiKey = ref('')
-const showApiKey = ref(false)
+const qwenApiKey = ref('')
+const geminiApiKey = ref('')
+const showQwenApiKey = ref(false)
+const showGeminiApiKey = ref(false)
 const isTesting = ref(false)
 const isSaving = ref(false)
 const apiKeyStatus = ref<boolean | null>(null)
 const apiKeyStatusMessage = ref('')
 
 onMounted(() => {
-  // Load existing API key from localStorage
-  const savedKey = localStorage.getItem('protospec_gemini_api_key')
-  if (savedKey) {
-    apiKey.value = savedKey
+  // Load existing API keys from localStorage
+  const savedQwenKey = localStorage.getItem('protospec_qwen_api_key')
+  const savedGeminiKey = localStorage.getItem('protospec_gemini_api_key')
+  if (savedQwenKey) {
+    qwenApiKey.value = savedQwenKey
+  }
+  if (savedGeminiKey) {
+    geminiApiKey.value = savedGeminiKey
   }
 })
 
 const testApiKey = async () => {
-  if (!apiKey.value.trim()) {
+  if (!qwenApiKey.value.trim() && !geminiApiKey.value.trim()) {
     apiKeyStatus.value = false
-    apiKeyStatusMessage.value = 'Please enter an API key first'
+    apiKeyStatusMessage.value = 'Please enter at least one API key first'
     return
   }
 
@@ -179,7 +185,7 @@ const testApiKey = async () => {
   apiKeyStatusMessage.value = ''
 
   try {
-    // Test the API key by making a simple request to our endpoint
+    // Test the API keys by making a simple request to our endpoint
     const response = await fetch('/api/estimate-quote', {
       method: 'POST',
       headers: {
@@ -195,10 +201,10 @@ const testApiKey = async () => {
       const data = await response.json()
       if (data.aiPowered) {
         apiKeyStatus.value = true
-        apiKeyStatusMessage.value = 'API key is valid and working!'
+        apiKeyStatusMessage.value = `AI integration working! Using ${data.modelUsed || 'AI'}.`
       } else {
         apiKeyStatus.value = false
-        apiKeyStatusMessage.value = 'API key may be invalid or server-side configuration is missing'
+        apiKeyStatusMessage.value = 'AI keys may be invalid or server-side configuration is missing'
       }
     } else {
       const errorData = await response.json().catch(() => ({}))
@@ -215,7 +221,9 @@ const testApiKey = async () => {
 }
 
 const clearApiKey = () => {
-  apiKey.value = ''
+  qwenApiKey.value = ''
+  geminiApiKey.value = ''
+  localStorage.removeItem('protospec_qwen_api_key')
   localStorage.removeItem('protospec_gemini_api_key')
   apiKeyStatus.value = null
   apiKeyStatusMessage.value = ''
@@ -225,8 +233,14 @@ const saveSettings = () => {
   isSaving.value = true
   
   try {
-    if (apiKey.value.trim()) {
-      localStorage.setItem('protospec_gemini_api_key', apiKey.value.trim())
+    if (qwenApiKey.value.trim()) {
+      localStorage.setItem('protospec_qwen_api_key', qwenApiKey.value.trim())
+    } else {
+      localStorage.removeItem('protospec_qwen_api_key')
+    }
+    
+    if (geminiApiKey.value.trim()) {
+      localStorage.setItem('protospec_gemini_api_key', geminiApiKey.value.trim())
     } else {
       localStorage.removeItem('protospec_gemini_api_key')
     }

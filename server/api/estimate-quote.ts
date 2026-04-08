@@ -1,6 +1,43 @@
 import { defineEventHandler, readBody, setResponseStatus } from 'h3'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
+// Qwen AI client
+interface QwenResponse {
+  choices: Array<{
+    message: {
+      content: string
+    }
+  }>
+}
+
+async function callQwenAPI(prompt: string, apiKey: string): Promise<string> {
+  const response = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'qwen-max',
+      input: {
+        messages: [
+          { role: 'user', content: prompt }
+        ]
+      },
+      parameters: {
+        result_format: 'message'
+      }
+    })
+  })
+
+  if (!response.ok) {
+    throw new Error(`Qwen API error: ${response.status} ${await response.text()}`)
+  }
+
+  const data: QwenResponse = await response.json()
+  return data.choices[0].message.content
+}
+
 interface QuoteEstimationRequest {
   requirements: string
   clientName?: string
@@ -59,22 +96,10 @@ export default defineEventHandler(async (event) => {
       return cached.response
     }
 
-    // Get API key from environment (server-side only)
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
-      console.warn('Gemini API key not configured, falling back to rule-based estimation')
-      return await getRuleBasedEstimation(body.requirements)
-    }
-
-    // Initialize Gemini AI
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        responseMimeType: "application/json"
-      }
-    })
-
+    // Try Qwen first, then Gemini, then fallback to rule-based
+    const qwenApiKey = process.env.QWEN_API_KEY
+    const geminiApiKey = process.env.GEMINI_API_KEY
+    
     const prompt = `
 You are an expert software development estimator specializing in Malaysian SME projects. 
 Analyze the following project requirements and provide a detailed cost estimation in JSON format.
@@ -107,24 +132,61 @@ Guidelines:
 - Estimated hours should be realistic for a small-to-medium Malaysian development team
 `
 
-    const result = await model.generateContent(prompt)
-    const responseText = result.response.text()
+    let responseText = ''
+    let usedModel = ''
     
-    let geminiResponse: QuoteEstimationResponse
+    // Try Qwen first if available
+    if (qwenApiKey) {
+      try {
+        console.log('Attempting Qwen API call')
+        responseText = await callQwenAPI(prompt, qwenApiKey)
+        usedModel = 'qwen'
+      } catch (qwenError) {
+        console.warn('Qwen API failed, trying Gemini:', qwenError)
+      }
+    }
+    
+    // Try Gemini if Qwen failed or not available
+    if (!responseText && geminiApiKey) {
+      try {
+        console.log('Attempting Gemini API call')
+        const genAI = new GoogleGenerativeAI(geminiApiKey)
+        const model = genAI.getGenerativeModel({ 
+          model: "gemini-1.5-flash",
+          generationConfig: {
+            responseMimeType: "application/json"
+          }
+        })
+        const result = await model.generateContent(prompt)
+        responseText = result.response.text()
+        usedModel = 'gemini'
+      } catch (geminiError) {
+        console.warn('Gemini API failed:', geminiError)
+      }
+    }
+    
+    // If both failed, fall back to rule-based
+    if (!responseText) {
+      console.warn('Both Qwen and Gemini APIs failed or not configured, falling back to rule-based estimation')
+      return await getRuleBasedEstimation(body.requirements)
+    }
+    
+    let aiResponse: QuoteEstimationResponse
     try {
-      geminiResponse = JSON.parse(responseText)
+      aiResponse = JSON.parse(responseText)
       // Validate response structure
-      if (!geminiResponse.estimatedHours || !geminiResponse.totalCostMYR || !geminiResponse.confidenceScore) {
+      if (!aiResponse.estimatedHours || !aiResponse.totalCostMYR || !aiResponse.confidenceScore) {
         throw new Error('Invalid response structure')
       }
       
-      // Add AI-powered flag
-      geminiResponse.aiPowered = true
+      // Add AI-powered flag and model info
+      aiResponse.aiPowered = true
+      ;(aiResponse as any).modelUsed = usedModel
       
       // Cache the response
-      requestCache.set(cacheKey, { response: geminiResponse, timestamp: now })
+      requestCache.set(cacheKey, { response: aiResponse, timestamp: now })
       
-      return geminiResponse
+      return aiResponse
     } catch (parseError) {
       console.error('Failed to parse Gemini response:', responseText, parseError)
       // Fall back to rule-based estimation
