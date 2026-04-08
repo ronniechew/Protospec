@@ -1,35 +1,35 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <header class="bg-white shadow">
+  <div class="min-h-screen bg-background">
+    <header class="bg-white shadow-lg border-b border-gray-100">
       <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <h1 class="text-3xl font-bold text-gray-900">Protospec Quote</h1>
-        <p class="mt-2 text-gray-600">Your software development quotation</p>
+        <h1 class="text-4xl font-bold text-text-heading">Protospec Quote</h1>
+        <p class="mt-2 text-text-body leading-relaxed">Your software development quotation</p>
       </div>
     </header>
     <main>
-      <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
         <div class="px-4 py-6 sm:px-0">
-          <div class="bg-white shadow rounded-lg p-6">
-            <div class="flex justify-between items-start mb-6">
+          <div class="bg-white shadow-lg rounded-xl p-6 md:p-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
               <div>
-                <h2 class="text-2xl font-bold text-gray-900">{{ quote.clientName }} Project</h2>
-                <p class="text-gray-600">Generated on {{ formatDate(new Date()) }}</p>
+                <h2 class="text-3xl font-bold text-text-heading">{{ quote.clientName }} Project</h2>
+                <p class="text-text-body mt-2">Generated on {{ formatDate(new Date()) }}</p>
               </div>
-              <div class="text-right">
-                <p class="text-3xl font-bold text-indigo-600">RM {{ quote.totalCostMYR.toLocaleString() }}</p>
-                <p class="text-sm text-gray-500">{{ quote.totalEstimatedHours }} hours estimated</p>
+              <div class="text-right mt-4 md:mt-0">
+                <p class="text-4xl font-bold text-accent">RM {{ quote.totalCostMYR.toLocaleString() }}</p>
+                <p class="text-base text-text-body mt-2">{{ quote.totalEstimatedHours }} hours estimated</p>
               </div>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div class="border border-gray-200 rounded-lg p-4 mobile-padding">
-                <h3 class="font-medium text-gray-900 mb-2">Project Summary</h3>
-                <p class="text-gray-600 text-sm">{{ quote.requirements }}</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div class="border border-gray-200 rounded-xl p-6 shadow-sm">
+                <h3 class="font-medium text-text-heading text-lg mb-3">Project Summary</h3>
+                <p class="text-text-body text-base leading-relaxed">{{ quote.requirements }}</p>
               </div>
-              <div class="border border-gray-200 rounded-lg p-4 mobile-padding">
-                <h3 class="font-medium text-gray-900 mb-2">Rate Card</h3>
-                <p class="text-gray-600 text-sm">Malaysian SME Standard</p>
-                <div class="mt-2 text-xs text-gray-500">
+              <div class="border border-gray-200 rounded-xl p-6 shadow-sm">
+                <h3 class="font-medium text-text-heading text-lg mb-3">Rate Card</h3>
+                <p class="text-text-body text-base mb-4">Malaysian SME Standard</p>
+                <div class="text-sm text-text-body space-y-2">
                   <p>Frontend (Mid): RM 65/hour</p>
                   <p>Backend (Mid): RM 70/hour</p>
                   <p>Fullstack (Mid): RM 75/hour</p>
@@ -37,21 +37,21 @@
               </div>
             </div>
             
-            <div class="mb-6">
-              <h3 class="font-medium text-gray-900 mb-3">Requirements Analysis</h3>
-              <div class="space-y-3 responsive-table">
+            <div class="mb-8">
+              <h3 class="font-medium text-text-heading text-2xl mb-4">Requirements Analysis</h3>
+              <div class="space-y-4">
                 <div v-for="(req, index) in quote.requirementsAnalysis" :key="index" 
-                     class="flex items-start border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-                  <div class="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-indigo-100 rounded-full mr-3 touch-target">
-                    <span class="text-indigo-800 font-medium text-sm">{{ index + 1 }}</span>
+                     class="flex items-start border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                  <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-primary/10 rounded-full mr-4 min-w-[40px] min-h-[40px]">
+                    <span class="text-primary font-medium text-base">{{ index + 1 }}</span>
                   </div>
                   <div class="flex-1">
-                    <p class="text-gray-900 text-sm">{{ req.description }}</p>
-                    <div class="flex flex-wrap items-center mt-1 gap-2">
-                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    <p class="text-text-heading text-base">{{ req.description }}</p>
+                    <div class="flex flex-wrap items-center mt-2 gap-3">
+                      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-text-heading">
                         {{ req.category }}
                       </span>
-                      <span class="text-xs text-gray-500">
+                      <span class="text-sm text-text-body">
                         Complexity: {{ req.complexityScore }}
                       </span>
                     </div>
@@ -60,16 +60,16 @@
               </div>
             </div>
             
-            <div class="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3">
+            <div class="flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4">
               <button
                 @click="goBack"
-                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 touch-target"
+                class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-xl text-text-heading bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary shadow-sm min-h-[44px]"
               >
                 Edit Requirements
               </button>
               <button
                 @click="downloadPDF"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 pdf-download-btn touch-target"
+                class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-lg text-white bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent transition-all duration-200 min-h-[44px]"
               >
                 Download PDF Quote
               </button>

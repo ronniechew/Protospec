@@ -1,72 +1,72 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <header class="bg-white shadow">
+  <div class="min-h-screen bg-background">
+    <header class="bg-white shadow-lg border-b border-gray-100">
       <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <h1 class="text-3xl font-bold text-gray-900">Protospec</h1>
-        <p class="mt-2 text-gray-600">Generate accurate software development quotations for Malaysian SMEs</p>
+        <h1 class="text-4xl font-bold text-text-heading">Protospec</h1>
+        <p class="mt-2 text-text-body leading-relaxed">Generate accurate software development quotations for Malaysian SMEs</p>
       </div>
     </header>
     <main>
-      <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
         <div class="px-4 py-6 sm:px-0">
-          <div class="bg-white shadow rounded-lg p-6">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">Enter Project Requirements</h2>
+          <div class="bg-white shadow-lg rounded-xl p-6 md:p-8">
+            <h2 class="text-3xl font-semibold text-text-heading mb-6">Enter Project Requirements</h2>
             
             <!-- Template Selection -->
-            <div class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 mb-2">
+            <div class="mb-8">
+              <label class="block text-base font-medium text-text-heading mb-4">
                 Start with a template (optional)
               </label>
-              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 template-grid">
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <button
                   v-for="template in templates"
                   :key="template.id"
                   @click="applyTemplateToForm(template.id)"
                   type="button"
-                  class="text-left p-3 border border-gray-200 rounded-md hover:border-indigo-300 hover:bg-indigo-50 transition-colors touch-target"
+                  class="text-left p-4 border border-gray-200 rounded-xl shadow-sm hover:border-primary hover:shadow-md transition-all duration-200 bg-white min-h-[80px] flex flex-col justify-center hover:bg-blue-50"
                 >
-                  <div class="font-medium text-sm text-gray-900">{{ template.name }}</div>
-                  <div class="text-xs text-gray-500 mt-1">{{ template.description }}</div>
+                  <div class="font-medium text-text-heading text-base">{{ template.name }}</div>
+                  <div class="text-sm text-text-body mt-2">{{ template.description }}</div>
                 </button>
               </div>
             </div>
             
             <form @submit.prevent="generateQuote">
-              <div class="mb-4">
-                <label for="clientName" class="block text-sm font-medium text-gray-700 mb-1">
+              <div class="mb-6">
+                <label for="clientName" class="block text-base font-medium text-text-heading mb-2">
                   Client Name
                 </label>
                 <input
                   id="clientName"
                   v-model="formData.clientName"
                   type="text"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base"
                   placeholder="Enter client name"
                 />
               </div>
-              <div class="mb-4">
-                <label for="requirements" class="block text-sm font-medium text-gray-700 mb-1">
+              <div class="mb-6">
+                <label for="requirements" class="block text-base font-medium text-text-heading mb-2">
                   Project Requirements
                 </label>
                 <textarea
                   id="requirements"
                   v-model="formData.requirements"
                   rows="6"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-base leading-relaxed"
                   placeholder="Describe your project requirements in detail..."
                 ></textarea>
-                <p class="mt-2 text-sm text-gray-500">
+                <p class="mt-3 text-sm text-text-body">
                   Be as specific as possible about features, integrations, and technical requirements.
                 </p>
               </div>
               
               <!-- Real-time Cost Preview -->
-              <div v-if="costPreview" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+              <div v-if="costPreview" class="mb-6 p-4 bg-accent/10 border border-accent/20 rounded-xl">
                 <div class="flex items-center justify-between">
-                  <span class="text-sm font-medium text-green-800">Live Cost Estimate</span>
-                  <span class="text-lg font-bold text-green-700">RM {{ costPreview.totalCostMYR.toLocaleString() }}</span>
+                  <span class="text-base font-medium text-accent">Live Cost Estimate</span>
+                  <span class="text-2xl font-bold text-accent">RM {{ costPreview.totalCostMYR.toLocaleString() }}</span>
                 </div>
-                <div class="text-sm text-green-600 mt-1">
+                <div class="text-base text-accent mt-2">
                   Estimated {{ costPreview.totalEstimatedHours }} hours
                 </div>
               </div>
@@ -74,7 +74,7 @@
               <div class="flex justify-end">
                 <button
                   type="submit"
-                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-lg text-white bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 min-h-[44px]"
                   :disabled="isGenerating || !formData.requirements.trim()"
                 >
                   <span v-if="!isGenerating">Generate Quote</span>
