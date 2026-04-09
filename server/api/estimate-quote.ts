@@ -73,6 +73,44 @@ Conclude your response with a professional markdown quote in the EXACT format sh
 ## Acceptance
 [Client acceptance criteria and next steps for project initiation]
 
+### Final Structured Output:
+At the very end of your response, AFTER the professional markdown quote, provide a JSON object with the exact cost breakdown that matches the numbers in the professional quote. The JSON must include detailed breakdown by role with days, daily rates, and totals, plus the overall total investment amount.
+
+\`\`\`json
+{
+  "costBreakdown": {
+    "technicalLeadArchitect": {
+      "days": [number],
+      "dailyRate": [number],
+      "total": [number]
+    },
+    "seniorDeveloper": {
+      "days": [number],
+      "dailyRate": [number],
+      "total": [number]
+    },
+    "uiuxDesigner": {
+      "days": [number],
+      "dailyRate": [number],
+      "total": [number]
+    },
+    "qaTesting": {
+      "days": [number],
+      "dailyRate": [number],
+      "total": [number]
+    },
+    "totalInvestmentAmount": [number]
+  }
+}
+\`\`\`
+
+**Critical Requirements:**
+- The JSON cost breakdown MUST exactly match the numbers presented in the professional markdown quote above it
+- All monetary values must be in Malaysian Ringgit (MYR/RM)
+- Daily rates must fall within the 2026 Malaysia market standards specified above
+- The totalInvestmentAmount must equal the sum of all individual role totals
+- Do not include any additional fields or modify the JSON structure
+
 Be pragmatic. If a requirement is vague, state your assumptions clearly rather than underquoting. Maintain Malaysian market context and 2026 pricing standards throughout your analysis.`
         },
         { role: 'user', content: projectRequirements }
@@ -139,6 +177,44 @@ Conclude your response with a professional markdown quote in the EXACT format sh
 
 ## Acceptance
 [Client acceptance criteria and next steps for project initiation]
+
+### Final Structured Output:
+At the very end of your response, AFTER the professional markdown quote, provide a JSON object with the exact cost breakdown that matches the numbers in the professional quote. The JSON must include detailed breakdown by role with days, daily rates, and totals, plus the overall total investment amount.
+
+\`\`\`json
+{
+  "costBreakdown": {
+    "technicalLeadArchitect": {
+      "days": [number],
+      "dailyRate": [number],
+      "total": [number]
+    },
+    "seniorDeveloper": {
+      "days": [number],
+      "dailyRate": [number],
+      "total": [number]
+    },
+    "uiuxDesigner": {
+      "days": [number],
+      "dailyRate": [number],
+      "total": [number]
+    },
+    "qaTesting": {
+      "days": [number],
+      "dailyRate": [number],
+      "total": [number]
+    },
+    "totalInvestmentAmount": [number]
+  }
+}
+\`\`\`
+
+**Critical Requirements:**
+- The JSON cost breakdown MUST exactly match the numbers presented in the professional markdown quote above it
+- All monetary values must be in Malaysian Ringgit (MYR/RM)
+- Daily rates must fall within the 2026 Malaysia market standards specified above
+- The totalInvestmentAmount must equal the sum of all individual role totals
+- Do not include any additional fields or modify the JSON structure
 
 Be pragmatic. If a requirement is vague, state your assumptions clearly rather than underquoting. Maintain Malaysian market context and 2026 pricing standards throughout your analysis.`
         },
