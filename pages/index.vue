@@ -252,6 +252,26 @@ const parseFinalEstimate = (text: string): { totalCostMYR: number; totalEstimate
   return null
 }
 
+// Extract professional markdown quote from streaming output
+const extractMarkdownQuote = (text: string): string | null => {
+  // Look for the start of the professional quotation
+  const quoteStartIndex = text.indexOf('# Professional Quotation')
+  if (quoteStartIndex === -1) {
+    return null
+  }
+  
+  // Find where the professional quote ends (before the final JSON)
+  const jsonCodeBlockIndex = text.lastIndexOf('```json')
+  
+  if (jsonCodeBlockIndex !== -1 && jsonCodeBlockIndex > quoteStartIndex) {
+    // Extract everything from '# Professional Quotation' to just before '```json'
+    return text.substring(quoteStartIndex, jsonCodeBlockIndex).trim()
+  } else {
+    // If no JSON code block found, return everything from '# Professional Quotation' onwards
+    return text.substring(quoteStartIndex).trim()
+  }
+}
+
 // Streaming cost estimation with LLM thinking process
 const streamEstimateCost = async (requirements: string) => {
   if (!requirements.trim()) {
@@ -370,6 +390,12 @@ const streamEstimateCost = async (requirements: string) => {
                 confidenceScore: finalEstimate.confidenceScore
               }
             }
+            
+            // Extract and save markdown quote
+            const markdownQuote = extractMarkdownQuote(streamingOutput.value)
+            if (markdownQuote) {
+              localStorage.setItem('protospec-markdown-quote', markdownQuote)
+            }
           } else if (chunk.type === 'result') {
             // Final result
             costPreview.value = {
@@ -396,6 +422,12 @@ const streamEstimateCost = async (requirements: string) => {
               aiPowered: true,
               confidenceScore: finalEstimate.confidenceScore
             }
+          }
+          
+          // Extract and save markdown quote
+          const markdownQuote = extractMarkdownQuote(streamingOutput.value)
+          if (markdownQuote) {
+            localStorage.setItem('protospec-markdown-quote', markdownQuote)
           }
         }
       }
@@ -442,6 +474,12 @@ const streamEstimateCost = async (requirements: string) => {
             aiPowered: true,
             confidenceScore: finalEstimate.confidenceScore
           }
+        }
+        
+        // Extract and save markdown quote
+        const markdownQuote = extractMarkdownQuote(streamingOutput.value)
+        if (markdownQuote) {
+          localStorage.setItem('protospec-markdown-quote', markdownQuote)
         }
       }
     }
@@ -494,6 +532,12 @@ const generateQuote = async () => {
     localStorage.setItem('protospec-cost-preview', JSON.stringify(finalEstimate))
     localStorage.setItem('protospec-form-data', JSON.stringify(formData.value))
     localStorage.setItem('protospec-llm-reasoning', llmReasoningOutput.value)
+    
+    // Ensure markdown quote is saved (fallback extraction)
+    const fallbackMarkdownQuote = extractMarkdownQuote(llmReasoningOutput.value)
+    if (fallbackMarkdownQuote) {
+      localStorage.setItem('protospec-markdown-quote', fallbackMarkdownQuote)
+    }
     
     // Navigate to results page with pre-computed data
     window.location.href = '/results'
