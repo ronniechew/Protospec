@@ -309,8 +309,19 @@ const parseDetailedCostBreakdown = (text: string): Record<string, any> | null =>
     if (match[1]) {
       try {
         const parsed = JSON.parse(match[1])
-        // Check if it contains the expected cost breakdown structure
-        if (parsed.technicalLeadArchitect && parsed.seniorDeveloper && parsed.uiuxDesigner && parsed.qaTesting) {
+        // Check if it contains the expected cost breakdown structure (nested under costBreakdown)
+        if (parsed.costBreakdown && 
+            parsed.costBreakdown.technicalLeadArchitect && 
+            parsed.costBreakdown.seniorDeveloper && 
+            parsed.costBreakdown.uiuxDesigner && 
+            parsed.costBreakdown.qaTesting) {
+          return parsed
+        }
+        // Also check if roles are at top level (fallback for older format)
+        if (parsed.technicalLeadArchitect && 
+            parsed.seniorDeveloper && 
+            parsed.uiuxDesigner && 
+            parsed.qaTesting) {
           return parsed
         }
       } catch (e) {
@@ -319,39 +330,22 @@ const parseDetailedCostBreakdown = (text: string): Record<string, any> | null =>
     }
   }
   
-  // Format 2: Plain JSON object at the end
-  const lines = text.split('\n').reverse()
-  let jsonStr = ''
-  for (const line of lines) {
-    const trimmedLine = line.trim()
-    if (trimmedLine.startsWith('}') && jsonStr === '') {
-      jsonStr = trimmedLine
-    } else if (jsonStr !== '') {
-      jsonStr = trimmedLine + '\n' + jsonStr
-      if (trimmedLine.startsWith('{')) {
-        try {
-          const parsed = JSON.parse(jsonStr)
-          if (parsed.technicalLeadArchitect && parsed.seniorDeveloper && parsed.uiuxDesigner && parsed.qaTesting) {
-            return parsed
-          }
-        } catch (e) {
-          // Continue building JSON string
+  // Format 2: JSON without code block markers
+  const jsonMatches = text.matchAll(/(\{[^}]*"costBreakdown"[^}]*\})/g)
+  for (const match of jsonMatches) {
+    if (match[1]) {
+      try {
+        const parsed = JSON.parse(match[1])
+        if (parsed.costBreakdown && 
+            parsed.costBreakdown.technicalLeadArchitect && 
+            parsed.costBreakdown.seniorDeveloper && 
+            parsed.costBreakdown.uiuxDesigner && 
+            parsed.costBreakdown.qaTesting) {
+          return parsed
         }
+      } catch (e) {
+        // Continue to next match
       }
-    }
-  }
-  
-  // Format 3: Search for cost breakdown pattern anywhere in text
-  const costBreakdownPattern = /{\s*"technicalLeadArchitect"\s*:\s*{[^}]*},\s*"seniorDeveloper"\s*:\s*{[^}]*},\s*"uiuxDesigner"\s*:\s*{[^}]*},\s*"qaTesting"\s*:\s*{[^}]*}\s*}/
-  const patternMatch = text.match(costBreakdownPattern)
-  if (patternMatch) {
-    try {
-      const parsed = JSON.parse(patternMatch[0])
-      if (parsed.technicalLeadArchitect && parsed.seniorDeveloper && parsed.uiuxDesigner && parsed.qaTesting) {
-        return parsed
-      }
-    } catch (e) {
-      console.warn('Failed to parse cost breakdown pattern:', e)
     }
   }
   
