@@ -1,17 +1,23 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-console.log('Enhanced Estimation function loaded')
+console.log('LLM-Only Estimation function loaded')
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-// LLM Configuration
+// LLM Configuration - now required
 const LLM_API_KEY = Deno.env.get('LLM_API_KEY')
 const LLM_MODEL = Deno.env.get('LLM_MODEL') || 'qwen/qwen3-max-2026-01-23'
 const LLM_TIMEOUT_MS = parseInt(Deno.env.get('LLM_TIMEOUT_MS') || '30000')
+
+// Fail fast if LLM is not configured
+if (!LLM_API_KEY) {
+  console.error('LLM_API_KEY is required for estimation. Rule-based fallback has been removed per ADR-002.')
+  throw new Error('LLM_API_KEY environment variable is required')
+}
 
 interface Requirement {
   description: string
@@ -32,11 +38,7 @@ interface EstimationResult {
   project_id: string
   total_estimated_hours: number
   total_cost_myr: number
-  rule_based_estimate: {
-    hours: number
-    cost: number
-  }
-  llm_refined_estimate: {
+  llm_estimate: {
     hours: number
     cost: number
     adjustments_reasoning: string
@@ -80,13 +82,8 @@ function validateEstimationRequest(request: any): { isValid: boolean; errors: st
   }
 }
 
-// LLM Integration for requirement analysis
+// LLM Integration for requirement analysis - NO FALLBACK
 async function analyzeRequirementsWithLLM(requirementsText: string, projectContext?: string): Promise<Requirement[]> {
-  if (!LLM_API_KEY) {
-    console.warn('LLM_API_KEY not configured, falling back to rule-based analysis')
-    return await analyzeRequirementsRuleBased(requirementsText)
-  }
-  
   try {
     // Construct prompt for LLM
     const prompt = `
@@ -157,73 +154,9 @@ If confidence is low (<0.7), suggest manual review.
     
   } catch (error) {
     console.error('LLM analysis failed:', error)
-    // Fall back to rule-based analysis
-    return await analyzeRequirementsRuleBased(requirementsText)
+    // NO FALLBACK - throw the error instead
+    throw new Error(`LLM requirement analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
-}
-
-// Rule-based requirement analysis (existing logic enhanced)
-async function analyzeRequirementsRuleBased(requirementsText: string): Promise<Requirement[]> {
-  const categories = [
-    { name: 'Authentication', keywords: ['login', 'auth', 'authentication', 'signup', 'register', 'oauth', 'sso'] },
-    { name: 'Database', keywords: ['database', 'data', 'store', 'save', 'persist', 'sql', 'nosql', 'schema'] },
-    { name: 'API Integration', keywords: ['api', 'integration', 'third-party', 'external', 'webhook', 'rest', 'graphql'] },
-    { name: 'Real-time Features', keywords: ['real-time', 'live', 'websocket', 'chat', 'notification', 'push'] },
-    { name: 'File Handling', keywords: ['file', 'upload', 'download', 'image', 'document', 'storage', 'cdn'] },
-    { name: 'Payment Processing', keywords: ['payment', 'pay', 'checkout', 'stripe', 'paypal', 'billing', 'subscription'] },
-    { name: 'Admin Dashboard', keywords: ['admin', 'dashboard', 'control panel', 'cms', 'management'] },
-    { name: 'User Interface', keywords: ['ui', 'interface', 'design', 'ux', 'user experience', 'component', 'form'] },
-    { name: 'Mobile Responsiveness', keywords: ['mobile', 'responsive', 'phone', 'tablet', 'touch', 'adaptive'] },
-    { name: 'Reporting', keywords: ['report', 'analytics', 'statistics', 'metrics', 'dashboard', 'chart', 'graph'] }
-  ]
-  
-  const requirements: Requirement[] = []
-  const text = requirementsText.toLowerCase()
-  
-  // Split into sentences or bullet points
-  const sentences = requirementsText
-    .split(/[\n\.\r]/)
-    .map(s => s.trim())
-    .filter(s => s.length > 10) // Only consider substantial sentences
-  
-  for (const sentence of sentences) {
-    if (sentence.trim().length === 0) continue
-    
-    let matchedCategory = null
-    let maxMatches = 0
-    
-    for (const category of categories) {
-      let matches = 0
-      for (const keyword of category.keywords) {
-        if (sentence.toLowerCase().includes(keyword)) {
-          matches++
-        }
-      }
-      if (matches > maxMatches) {
-        maxMatches = matches
-        matchedCategory = category.name
-      }
-    }
-    
-    // Get base complexity from database
-    const baseComplexity = matchedCategory ? 
-      (await supabase.from('requirement_categories').select('base_complexity_weight').eq('name', matchedCategory).single()).data?.base_complexity_weight || 1.0 : 1.0
-    
-    // Calculate complexity based on sentence length and keyword matches
-    const lengthFactor = Math.min(2.5, 0.8 + (sentence.length / 150))
-    const keywordFactor = maxMatches > 0 ? (1 + (maxMatches * 0.3)) : 1.0
-    const complexityScore = baseComplexity * lengthFactor * keywordFactor
-    
-    requirements.push({
-      description: sentence.trim(),
-      category: matchedCategory || 'General',
-      complexity_score: parseFloat(Math.min(5.0, complexityScore).toFixed(2)),
-      confidence: maxMatches > 0 ? 0.9 : 0.6,
-      suggested_adjustments: maxMatches === 0 ? ['Consider clarifying requirement scope'] : []
-    })
-  }
-  
-  return requirements
 }
 
 // Calculate project complexity multiplier based on requirements
@@ -381,17 +314,13 @@ async function findSimilarHistoricalProjects(
   }
 }
 
-// Apply LLM refinement to rule-based estimate
+// Apply LLM refinement to primary LLM estimate
 async function applyLLMRefinement(
-  ruleBasedHours: number,
-  ruleBasedCost: number,
+  baseHours: number,
+  baseCost: number,
   requirements: Requirement[],
   similarProjects: Array<{ project_id: string; name: string; similarity_score: number; estimated_vs_actual_variance: number }>
 ): Promise<{ hours: number; cost: number; adjustmentsReasoning: string }> {
-  if (!LLM_API_KEY) {
-    return { hours: ruleBasedHours, cost: ruleBasedCost, adjustmentsReasoning: 'LLM refinement not available' }
-  }
-  
   try {
     const avgVariance = similarProjects.length > 0
       ? similarProjects.reduce((sum, proj) => sum + proj.estimated_vs_actual_variance, 0) / similarProjects.length
@@ -403,7 +332,7 @@ async function applyLLMRefinement(
     const prompt = `
 Based on the following estimation analysis, provide refined estimates:
 
-Rule-based estimate: ${ruleBasedHours} hours, ${ruleBasedCost} MYR
+Base LLM estimate: ${baseHours} hours, ${baseCost} MYR
 Average variance in similar historical projects: ${(avgVariance * 100).toFixed(1)}%
 High-confidence requirements: ${highConfidenceRequirements.length}
 Low-confidence requirements: ${lowConfidenceRequirements.length}
@@ -452,17 +381,18 @@ Respond in JSON format: {"hours": number, "cost": number, "adjustments_reasoning
     const refinement = JSON.parse(jsonString)
     
     return {
-      hours: Math.max(0.1, parseFloat(refinement.hours) || ruleBasedHours),
-      cost: Math.max(0.1, parseFloat(refinement.cost) || ruleBasedCost),
+      hours: Math.max(0.1, parseFloat(refinement.hours) || baseHours),
+      cost: Math.max(0.1, parseFloat(refinement.cost) || baseCost),
       adjustmentsReasoning: refinement.adjustments_reasoning || 'No specific reasoning provided'
     }
     
   } catch (error) {
     console.error('LLM refinement failed:', error)
+    // Return base estimate if refinement fails, but log the error
     return {
-      hours: ruleBasedHours,
-      cost: ruleBasedCost,
-      adjustmentsReasoning: 'LLM refinement failed, using rule-based estimate'
+      hours: baseHours,
+      cost: baseCost,
+      adjustmentsReasoning: `LLM refinement failed: ${error instanceof Error ? error.message : 'Unknown error'}, using base LLM estimate`
     }
   }
 }
@@ -497,7 +427,7 @@ serve(async (req: Request) => {
     
     const { client_name, client_tier = 'startup', requirements, project_context } = requestData as EstimationRequest
     
-    // Step 1: Analyze requirements with LLM (falls back to rule-based if LLM unavailable)
+    // Step 1: Analyze requirements with LLM (NO FALLBACK)
     const requirementsAnalysis = await analyzeRequirementsWithLLM(requirements, project_context)
     
     if (requirementsAnalysis.length === 0) {
@@ -512,16 +442,16 @@ serve(async (req: Request) => {
     // Step 2: Calculate project complexity multiplier
     const projectComplexityMultiplier = calculateProjectComplexityMultiplier(requirementsAnalysis)
     
-    // Step 3: Calculate rule-based estimate
-    const ruleBasedEstimate = await calculateEnhancedEstimate(requirementsAnalysis, client_tier, projectComplexityMultiplier)
+    // Step 3: Calculate base LLM estimate
+    const baseEstimate = await calculateEnhancedEstimate(requirementsAnalysis, client_tier, projectComplexityMultiplier)
     
     // Step 4: Find similar historical projects
     const similarProjects = await findSimilarHistoricalProjects(requirementsAnalysis, client_tier)
     
     // Step 5: Apply LLM refinement
     const llmRefinedEstimate = await applyLLMRefinement(
-      ruleBasedEstimate.hours,
-      ruleBasedEstimate.cost,
+      baseEstimate.hours,
+      baseEstimate.cost,
       requirementsAnalysis,
       similarProjects
     )
@@ -566,7 +496,7 @@ serve(async (req: Request) => {
     // Step 8: Create quotation
     await supabase.from('quotations').insert({
       project_id: project.id,
-      rate_card_id: ruleBasedEstimate.rateCardId,
+      rate_card_id: baseEstimate.rateCardId,
       total_estimated_hours: finalHours,
       total_cost_myr: finalCost,
       status: 'draft'
@@ -590,11 +520,7 @@ serve(async (req: Request) => {
       project_id: project.id,
       total_estimated_hours: finalHours,
       total_cost_myr: finalCost,
-      rule_based_estimate: {
-        hours: ruleBasedEstimate.hours,
-        cost: ruleBasedEstimate.cost
-      },
-      llm_refined_estimate: {
+      llm_estimate: {
         hours: llmRefinedEstimate.hours,
         cost: llmRefinedEstimate.cost,
         adjustments_reasoning: llmRefinedEstimate.adjustmentsReasoning
