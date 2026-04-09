@@ -1,21 +1,5 @@
 <template>
   <div class="min-h-screen bg-white">
-    <header class="bg-white shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08)]">
-      <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
-        <div>
-          <h1 class="text-display-hero text-black">Protospec Quote</h1>
-          <p class="mt-2 text-body-large text-secondary">Professional software development quotation</p>
-        </div>
-        <nav class="hidden md:block">
-          <a href="/" class="text-link hover:text-link/80 font-medium transition-colors text-button mr-4">
-            Back to Estimator
-          </a>
-          <a href="/settings" class="text-link hover:text-link/80 font-medium transition-colors text-button">
-            Settings
-          </a>
-        </nav>
-      </div>
-    </header>
     <main>
       <div class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
         <div class="px-4 py-6 sm:px-0">
@@ -74,18 +58,18 @@
                 <div class="bg-purple-light/10 p-4 rounded-md border border-purple/20">
                   <h3 class="font-medium text-body-medium text-purple-text mb-3">Technical Lead / Architect</h3>
                   <div class="mb-2">
-                    <label class="block text-caption text-secondary mb-1">Daily Rate: RM {{ Math.round(technicalLeadRate) }}</label>
+                    <label class="block text-caption text-secondary mb-1">Daily Rate: {{ Math.round(technicalLeadRate) }}</label>
                     <input
                       v-model="technicalLeadRate"
                       type="range"
-                      min="2500"
-                      max="3500"
+                      min="100"
+                      max="10000"
                       step="50"
                       class="w-full h-2 bg-purple/20 rounded-lg appearance-none cursor-pointer"
                     />
                     <div class="flex justify-between text-caption text-secondary mt-1">
-                      <span>RM 2,500</span>
-                      <span>RM 3,500</span>
+                      <span>100</span>
+                      <span>10,000</span>
                     </div>
                   </div>
                   <div>
@@ -104,18 +88,18 @@
                 <div class="bg-purple-light/10 p-4 rounded-md border border-purple/20">
                   <h3 class="font-medium text-body-medium text-purple-text mb-3">Senior Developer</h3>
                   <div class="mb-2">
-                    <label class="block text-caption text-secondary mb-1">Daily Rate: RM {{ Math.round(seniorDevRate) }}</label>
+                    <label class="block text-caption text-secondary mb-1">Daily Rate: {{ Math.round(seniorDevRate) }}</label>
                     <input
                       v-model="seniorDevRate"
                       type="range"
-                      min="1500"
-                      max="2200"
+                      min="100"
+                      max="10000"
                       step="50"
                       class="w-full h-2 bg-purple/20 rounded-lg appearance-none cursor-pointer"
                     />
                     <div class="flex justify-between text-caption text-secondary mt-1">
-                      <span>RM 1,500</span>
-                      <span>RM 2,200</span>
+                      <span>100</span>
+                      <span>10,000</span>
                     </div>
                   </div>
                   <div>
@@ -134,18 +118,18 @@
                 <div class="bg-purple-light/10 p-4 rounded-md border border-purple/20">
                   <h3 class="font-medium text-body-medium text-purple-text mb-3">UI/UX Designer</h3>
                   <div class="mb-2">
-                    <label class="block text-caption text-secondary mb-1">Daily Rate: RM {{ Math.round(uiuxRate) }}</label>
+                    <label class="block text-caption text-secondary mb-1">Daily Rate: {{ Math.round(uiuxRate) }}</label>
                     <input
                       v-model="uiuxRate"
                       type="range"
-                      min="1200"
-                      max="1800"
+                      min="100"
+                      max="10000"
                       step="50"
                       class="w-full h-2 bg-purple/20 rounded-lg appearance-none cursor-pointer"
                     />
                     <div class="flex justify-between text-caption text-secondary mt-1">
-                      <span>RM 1,200</span>
-                      <span>RM 1,800</span>
+                      <span>100</span>
+                      <span>10,000</span>
                     </div>
                   </div>
                   <div>
@@ -164,18 +148,18 @@
                 <div class="bg-purple-light/10 p-4 rounded-md border border-purple/20">
                   <h3 class="font-medium text-body-medium text-purple-text mb-3">QA/Testing</h3>
                   <div class="mb-2">
-                    <label class="block text-caption text-secondary mb-1">Daily Rate: RM {{ Math.round(qaRate) }}</label>
+                    <label class="block text-caption text-secondary mb-1">Daily Rate: {{ Math.round(qaRate) }}</label>
                     <input
                       v-model="qaRate"
                       type="range"
-                      min="800"
-                      max="1200"
+                      min="100"
+                      max="10000"
                       step="50"
                       class="w-full h-2 bg-purple/20 rounded-lg appearance-none cursor-pointer"
                     />
                     <div class="flex justify-between text-caption text-secondary mt-1">
-                      <span>RM 800</span>
-                      <span>RM 1,200</span>
+                      <span>100</span>
+                      <span>10,000</span>
                     </div>
                   </div>
                   <div>
@@ -208,32 +192,32 @@
                   <tbody>
                     <tr class="border-b border-purple/10">
                       <td class="py-3 px-4 text-body-small">Technical Lead / Architect</td>
-                      <td class="text-right py-3 px-4 text-body-small">RM {{ Math.round(technicalLeadRate).toLocaleString() }}</td>
+                      <td class="text-right py-3 px-4 text-body-small">{{ Math.round(technicalLeadRate).toLocaleString() }}</td>
                       <td class="text-right py-3 px-4 text-body-small">{{ technicalLeadDays }}</td>
-                      <td class="text-right py-3 px-4 text-body-small font-medium">RM {{ Math.round(technicalLeadCost).toLocaleString() }}</td>
+                      <td class="text-right py-3 px-4 text-body-small font-medium">{{ Math.round(technicalLeadCost).toLocaleString() }}</td>
                     </tr>
                     <tr class="border-b border-purple/10">
                       <td class="py-3 px-4 text-body-small">Senior Developer</td>
-                      <td class="text-right py-3 px-4 text-body-small">RM {{ Math.round(seniorDevRate).toLocaleString() }}</td>
+                      <td class="text-right py-3 px-4 text-body-small">{{ Math.round(seniorDevRate).toLocaleString() }}</td>
                       <td class="text-right py-3 px-4 text-body-small">{{ seniorDevDays }}</td>
-                      <td class="text-right py-3 px-4 text-body-small font-medium">RM {{ Math.round(seniorDevCost).toLocaleString() }}</td>
+                      <td class="text-right py-3 px-4 text-body-small font-medium">{{ Math.round(seniorDevCost).toLocaleString() }}</td>
                     </tr>
                     <tr class="border-b border-purple/10">
                       <td class="py-3 px-4 text-body-small">UI/UX Designer</td>
-                      <td class="text-right py-3 px-4 text-body-small">RM {{ Math.round(uiuxRate).toLocaleString() }}</td>
+                      <td class="text-right py-3 px-4 text-body-small">{{ Math.round(uiuxRate).toLocaleString() }}</td>
                       <td class="text-right py-3 px-4 text-body-small">{{ uiuxDays }}</td>
-                      <td class="text-right py-3 px-4 text-body-small font-medium">RM {{ Math.round(uiuxCost).toLocaleString() }}</td>
+                      <td class="text-right py-3 px-4 text-body-small font-medium">{{ Math.round(uiuxCost).toLocaleString() }}</td>
                     </tr>
                     <tr class="border-b border-purple/10">
                       <td class="py-3 px-4 text-body-small">QA/Testing</td>
-                      <td class="text-right py-3 px-4 text-body-small">RM {{ Math.round(qaRate).toLocaleString() }}</td>
+                      <td class="text-right py-3 px-4 text-body-small">{{ Math.round(qaRate).toLocaleString() }}</td>
                       <td class="text-right py-3 px-4 text-body-small">{{ qaDays }}</td>
-                      <td class="text-right py-3 px-4 text-body-small font-medium">RM {{ Math.round(qaCost).toLocaleString() }}</td>
+                      <td class="text-right py-3 px-4 text-body-small font-medium">{{ Math.round(qaCost).toLocaleString() }}</td>
                     </tr>
                     <tr class="bg-purple/5">
                       <td class="py-4 px-4 text-body-medium font-medium text-purple-text">Total</td>
                       <td colspan="2"></td>
-                      <td class="text-right py-4 px-4 text-card-title font-bold text-purple-text">RM {{ Math.round(totalCost).toLocaleString() }}</td>
+                      <td class="text-right py-4 px-4 text-card-title font-bold text-purple-text">{{ Math.round(totalCost).toLocaleString() }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -274,14 +258,14 @@ const quoteDate = ref(new Date().toISOString().split('T')[0])
 const requirements = ref('')
 const llmReasoning = ref('')
 
-// Rate card configuration with Malaysian market rates
-const technicalLeadRate = ref(3000) // Default midpoint
+// Rate card configuration with flexible ranges
+const technicalLeadRate = ref(3000) // Default reasonable value
 const technicalLeadDays = ref(10)
-const seniorDevRate = ref(1850) // Default midpoint  
+const seniorDevRate = ref(2000) // Default reasonable value  
 const seniorDevDays = ref(20)
-const uiuxRate = ref(1500) // Default midpoint
+const uiuxRate = ref(1500) // Default reasonable value
 const uiuxDays = ref(15)
-const qaRate = ref(1000) // Default midpoint
+const qaRate = ref(1000) // Default reasonable value
 const qaDays = ref(12)
 
 // Computed costs
@@ -349,12 +333,8 @@ onMounted(() => {
     display: none !important;
   }
   
-  nav {
-    display: none !important;
-  }
-  
-  header {
-    border-bottom: 2px solid #6b21a8 !important;
+  .bg-purple-light\/10 {
+    background-color: #f9f5ff !important;
   }
 }
 </style>
