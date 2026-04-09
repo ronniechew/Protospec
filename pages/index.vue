@@ -86,6 +86,16 @@
                 </div>
               </div>
               
+              <!-- Error message when no API key -->
+              <div v-else-if="showApiKeyError && !hasApiKey()" class="mb-6 p-4 bg-error/10 rounded-md border border-error/20">
+                <div class="text-body-medium text-error">
+                  LLM API key required for cost estimation
+                </div>
+                <div class="text-caption text-error/80 mt-1">
+                  Please configure your Qwen or Gemini API key in Settings to enable AI-powered cost estimates.
+                </div>
+              </div>
+              
               <div class="flex justify-end">
                 <button
                   type="submit"
@@ -123,6 +133,8 @@ const costPreview = ref<{
   confidenceScore?: number;
 } | null>(null)
 
+const showApiKeyError = ref(false)
+
 // Check if API key is available
 const hasApiKey = () => {
   return !!(localStorage.getItem('protospec_qwen_api_key') || localStorage.getItem('protospec_gemini_api_key'))
@@ -133,81 +145,56 @@ const applyTemplateToForm = (templateId: string) => {
   formData.value.requirements = applyTemplate(templateId, formData.value.requirements)
 }
 
-// Real-time cost estimation
+// Real-time cost estimation - LLM ONLY, NO FALLBACK
 const estimateCost = async (requirements: string) => {
   if (!requirements.trim()) {
     costPreview.value = null
+    showApiKeyError.value = false
     return
   }
   
-  // Use LLM if API key is available, otherwise use rule-based
-  if (hasApiKey()) {
-    try {
-      const response = await fetch('/api/estimate-quote', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          requirements: requirements,
-          clientName: formData.value.clientName || 'Anonymous'
-        })
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        costPreview.value = {
-          totalEstimatedHours: data.estimatedHours,
-          totalCostMYR: data.totalCostMYR,
-          aiPowered: data.aiPowered === true,
-          confidenceScore: data.confidenceScore
-        }
-        return
-      }
-      // If LLM fails, fall back to rule-based
-    } catch (error) {
-      console.warn('LLM estimation failed, falling back to rule-based:', error)
-    }
+  // Require API key for any estimation
+  if (!hasApiKey()) {
+    costPreview.value = null
+    showApiKeyError.value = true
+    return
   }
   
-  // Rule-based estimation fallback
-  const words = requirements.split(/\s+/).filter(word => word.length > 0).length
-  
-  // Base hours calculation
-  let baseHours = Math.max(20, words * 0.3) // Minimum 20 hours
-  
-  // Complexity multipliers based on keywords
-  const complexityKeywords = [
-    { keyword: 'payment', multiplier: 1.5 },
-    { keyword: 'authentication', multiplier: 1.3 },
-    { keyword: 'mobile app', multiplier: 2.0 },
-    { keyword: 'e-commerce', multiplier: 1.8 },
-    { keyword: 'database', multiplier: 1.4 },
-    { keyword: 'api', multiplier: 1.6 },
-    { keyword: 'integration', multiplier: 1.7 },
-    { keyword: 'real-time', multiplier: 2.0 },
-    { keyword: 'admin dashboard', multiplier: 1.5 },
-    { keyword: 'seo', multiplier: 1.2 }
-  ]
-  
-  let complexityMultiplier = 1.0
-  const lowerRequirements = requirements.toLowerCase()
-  
-  complexityKeywords.forEach(({ keyword, multiplier }) => {
-    if (lowerRequirements.includes(keyword)) {
-      complexityMultiplier += (multiplier - 1) * 0.3 // Reduce impact to avoid overestimation
+  try {
+    const response = await fetch('/api/estimate-quote', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        requirements: requirements,
+        clientName: formData.value.clientName || 'Anonymous',
+        qwenApiKey: localStorage.getItem('protospec_qwen_api_key') || undefined,
+        geminiApiKey: localStorage.getItem('protospec_gemini_api_key') || undefined
+      })
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      costPreview.value = {
+        totalEstimatedHours: data.estimatedHours,
+        totalCostMYR: data.totalCostMYR,
+        aiPowered: data.aiPowered === true,
+        confidenceScore: data.confidenceScore
+      }
+      showApiKeyError.value = false
+    } else {
+      // Handle API errors - no fallback
+      const errorData = await response.json().catch(() => ({}))
+      console.error('Estimation API error:', errorData.error || response.statusText)
+      costPreview.value = null
+      // Don't show API key error if we have keys but API failed
+      showApiKeyError.value = false
     }
-  })
-  
-  const estimatedHours = Math.round(baseHours * complexityMultiplier)
-  const hourlyRateMYR = 70 // Average Malaysian SME rate
-  const totalCostMYR = estimatedHours * hourlyRateMYR
-  
-  costPreview.value = {
-    totalEstimatedHours: estimatedHours,
-    totalCostMYR: totalCostMYR,
-    aiPowered: false,
-    confidenceScore: Math.min(0.7, requirements.length / 500) // Max 0.7 for rule-based
+  } catch (error) {
+    console.error('Estimation request failed:', error)
+    costPreview.value = null
+    showApiKeyError.value = false
   }
 }
 
@@ -222,51 +209,50 @@ const generateQuote = async () => {
     return
   }
   
+  // Ensure API key is configured before generating quote
+  if (!hasApiKey()) {
+    alert('Please configure your LLM API key in Settings before generating a quote.')
+    return
+  }
+  
   isGenerating.value = true
   try {
-    // Get final estimation (this ensures we have the most up-to-date estimate)
-    let finalEstimate = costPreview.value
-    if (!finalEstimate || (hasApiKey() && !finalEstimate.aiPowered)) {
-      // If we don't have an estimate or should use LLM but don't have AI-powered result
-      try {
-        const response = await fetch('/api/estimate-quote', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            requirements: formData.value.requirements,
-            clientName: formData.value.clientName,
-            qwenApiKey: localStorage.getItem('protospec_qwen_api_key') || undefined,
-            geminiApiKey: localStorage.getItem('protospec_gemini_api_key') || undefined
-          })
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          finalEstimate = {
-            totalEstimatedHours: data.estimatedHours,
-            totalCostMYR: data.totalCostMYR,
-            aiPowered: data.aiPowered === true,
-            confidenceScore: data.confidenceScore
-          }
-        }
-      } catch (error) {
-        console.warn('Final LLM estimation failed, using current estimate:', error)
+    // Get final estimation using LLM only
+    const response = await fetch('/api/estimate-quote', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        requirements: formData.value.requirements,
+        clientName: formData.value.clientName,
+        qwenApiKey: localStorage.getItem('protospec_qwen_api_key') || undefined,
+        geminiApiKey: localStorage.getItem('protospec_gemini_api_key') || undefined
+      })
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      const finalEstimate = {
+        totalEstimatedHours: data.estimatedHours,
+        totalCostMYR: data.totalCostMYR,
+        aiPowered: data.aiPowered === true,
+        confidenceScore: data.confidenceScore
       }
-    }
-    
-    // Store final estimate in localStorage
-    if (finalEstimate) {
+      
+      // Store final estimate in localStorage
       localStorage.setItem('protospec-cost-preview', JSON.stringify(finalEstimate))
+      localStorage.setItem('protospec-form-data', JSON.stringify(formData.value))
+      
+      // Navigate to results page
+      window.location.href = '/results'
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      alert(`Failed to generate quote: ${errorData.error || 'Unknown error'}`)
     }
-    localStorage.setItem('protospec-form-data', JSON.stringify(formData.value))
-    
-    // Navigate to results page
-    window.location.href = '/results'
   } catch (error) {
     console.error('Error generating quote:', error)
-    alert('An error occurred while generating the quote')
+    alert('An error occurred while generating the quote. Please check your API key configuration.')
   } finally {
     isGenerating.value = false
   }
