@@ -65,12 +65,12 @@
                 <p class="mt-3 text-caption text-secondary">
                   Be as specific as possible about features, integrations, and technical requirements.
                 </p>
-                <!-- Manual Estimate Cost Button -->
-                <div class="mt-4">
+                <!-- Estimate Cost Button -->
+                <div class="mt-6 flex justify-end">
                   <button
                     type="button"
                     @click="estimateCostManually"
-                    class="inline-flex items-center px-4 py-2 rounded-md text-button font-medium text-white bg-purple hover:bg-purple-dark focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] transition-all duration-200 min-h-[44px] shadow-border hover:shadow-md"
+                    class="inline-flex items-center px-6 py-3 rounded-lg text-button font-medium text-white bg-purple hover:bg-purple-dark focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] transition-all duration-200 min-h-[48px] shadow-border hover:shadow-md"
                     :disabled="!formData.requirements.trim() || isEstimating"
                   >
                     <span v-if="!isEstimating">Estimate Cost</span>
@@ -131,15 +131,23 @@
                 </div>
               </div>
               
-              <div class="flex justify-end">
+              <!-- Generate Quote Button - Only shown when cost estimate exists -->
+              <div v-if="costPreview" class="mt-8 pt-6 border-t border-gray-100 flex justify-end">
                 <button
                   type="submit"
-                  class="inline-flex items-center px-4 py-2 rounded-md text-button font-medium text-white bg-purple hover:bg-purple-dark focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] transition-all duration-200 min-h-[44px] shadow-border hover:shadow-md"
-                  :disabled="isGenerating || !formData.requirements.trim() || !costPreview"
+                  class="inline-flex items-center px-6 py-3 rounded-lg text-button font-medium text-white bg-purple hover:bg-purple-dark focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] transition-all duration-200 min-h-[48px] shadow-border hover:shadow-md"
+                  :disabled="isGenerating"
                 >
                   <span v-if="!isGenerating">Generate Quote</span>
                   <span v-else>Generating...</span>
                 </button>
+              </div>
+              
+              <!-- Placeholder message when no cost estimate exists -->
+              <div v-else class="mt-8 pt-6 border-t border-gray-100 text-center py-4">
+                <p class="text-body-medium text-secondary">
+                  Click "Estimate Cost" to generate a cost estimate before creating your quote.
+                </p>
               </div>
             </form>
           </div>
