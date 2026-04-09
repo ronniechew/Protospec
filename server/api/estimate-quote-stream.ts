@@ -1,13 +1,10 @@
 import { defineEventHandler, readBody, setResponseStatus } from 'h3'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// Qwen AI client using OpenAI-compatible endpoint
-interface OpenAIResponse {
-  choices: Array<{
-    message: {
-      content: string
-    }
-  }>
+interface QuoteEstimationRequest {
+  requirements: string
+  clientName?: string
+  qwenApiKey?: string
+  geminiApiKey?: string
 }
 
 async function callQwenAPIStream(prompt: string, apiKey: string) {
@@ -58,11 +55,30 @@ Be pragmatic. If a requirement is vague, state your assumptions clearly rather t
   return response.body
 }
 
-interface QuoteEstimationRequest {
-  requirements: string
-  clientName?: string
-  qwenApiKey?: string
-  geminiApiKey?: string
+// Helper function to parse SSE chunks and extract content
+function parseSSEChunk(chunk: string): { content: string | null; done: boolean } {
+  // Check for [DONE] marker
+  if (chunk.trim() === 'data: [DONE]') {
+    return { content: null, done: true }
+  }
+  
+  // Check if it's a valid data chunk
+  if (chunk.startsWith('data: ') && chunk !== 'data: ') {
+    try {
+      const jsonString = chunk.substring(6).trim() // Remove 'data: ' prefix
+      const parsed = JSON.parse(jsonString)
+      
+      // Extract content from choices[0].delta.content
+      if (parsed.choices && parsed.choices.length > 0 && 
+          parsed.choices[0].delta && parsed.choices[0].delta.content) {
+        return { content: parsed.choices[0].delta.content, done: false }
+      }
+    } catch (e) {
+      console.error('Error parsing SSE chunk:', e, 'Chunk:', chunk)
+    }
+  }
+  
+  return { content: null, done: false }
 }
 
 export default defineEventHandler(async (event) => {
@@ -84,8 +100,8 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Set proper streaming headers
-    event.node.res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+    // Set proper streaming headers for JSON lines
+    event.node.res.setHeader('Content-Type', 'application/json; charset=utf-8')
     event.node.res.setHeader('Cache-Control', 'no-cache')
     event.node.res.setHeader('Connection', 'keep-alive')
     event.node.res.setHeader('Transfer-Encoding', 'chunked')
@@ -93,26 +109,86 @@ export default defineEventHandler(async (event) => {
     try {
       const stream = await callQwenAPIStream(body.requirements, qwenApiKey)
       if (stream) {
-        // Pipe the streaming response directly to the client
-        for await (const chunk of stream as any) {
-          event.node.res.write(chunk)
+        const reader = stream.getReader()
+        let decoder = new TextDecoder()
+        let buffer = ''
+        
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            
+            buffer += decoder.decode(value, { stream: true })
+            
+            // Process complete lines from the buffer
+            let lines = buffer.split('\n')
+            buffer = lines.pop() || '' // Keep incomplete line in buffer
+            
+            for (const line of lines) {
+              if (line.trim() === '') continue // Skip empty lines
+              
+              const { content, done: isDone } = parseSSEChunk(line)
+              
+              if (isDone) {
+                // Send final completion message if needed
+                event.node.res.write('\n')
+                event.node.res.end()
+                return
+              }
+              
+              if (content !== null) {
+                // Transform to frontend-compatible JSON format
+                const formattedResponse = {
+                  type: 'thinking',
+                  content: content
+                }
+                
+                // Write as JSON line (newline-delimited JSON)
+                event.node.res.write(JSON.stringify(formattedResponse) + '\n')
+              }
+            }
+          }
+          
+          // Handle any remaining buffer content
+          if (buffer.trim() !== '') {
+            const { content, done: isDone } = parseSSEChunk(buffer)
+            if (isDone) {
+              event.node.res.write('\n')
+            } else if (content !== null) {
+              const formattedResponse = {
+                type: 'thinking',
+                content: content
+              }
+              event.node.res.write(JSON.stringify(formattedResponse) + '\n')
+            }
+          }
+          
+          event.node.res.end()
+        } finally {
+          reader.releaseLock()
         }
-        event.node.res.end()
       } else {
         throw new Error('No stream returned from Qwen API')
       }
     } catch (streamError) {
       console.error('Streaming error:', streamError)
-      event.node.res.write(JSON.stringify({ error: 'Streaming failed', details: streamError instanceof Error ? streamError.message : 'Unknown error' }))
+      const errorResponse = {
+        type: 'error',
+        content: 'Streaming failed',
+        details: streamError instanceof Error ? streamError.message : 'Unknown error'
+      }
+      event.node.res.write(JSON.stringify(errorResponse) + '\n')
       event.node.res.end()
     }
 
   } catch (error: any) {
     console.error('Error in estimate-quote-stream endpoint:', error)
     setResponseStatus(event, 500)
-    return { 
-      error: 'Internal streaming estimation error',
+    const errorResponse = {
+      type: 'error',
+      content: 'Internal streaming estimation error',
       details: error.message || 'Unknown error occurred during streaming estimation'
     }
+    return errorResponse
   }
 })
