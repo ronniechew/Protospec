@@ -37,14 +37,7 @@
             </NuxtLink>
           </nav>
           
-          <!-- Primary CTA Button -->
-          <div class="flex items-center">
-            <button 
-              class="bg-purple text-white px-4 py-2 rounded-md text-button font-medium hover:bg-purple-dark transition-colors duration-150 focus:outline-focus focus:shadow-focus"
-            >
-              New Prompt
-            </button>
-          </div>
+          <!-- Primary CTA removed as per UX requirements -->
         </div>
       </div>
     </header>
