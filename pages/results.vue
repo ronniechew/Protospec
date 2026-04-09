@@ -337,6 +337,7 @@ const saveQuote = () => {
 onMounted(() => {
   const storedFormData = localStorage.getItem('protospec-form-data')
   const storedMarkdownQuote = localStorage.getItem('protospec-markdown-quote')
+  const storedCostBreakdown = localStorage.getItem('protospec-cost-breakdown')
   
   if (storedFormData) {
     const formData = JSON.parse(storedFormData)
@@ -346,6 +347,32 @@ onMounted(() => {
   
   if (storedMarkdownQuote) {
     markdownQuote.value = storedMarkdownQuote
+  }
+  
+  // Load detailed cost breakdown from LLM if available
+  if (storedCostBreakdown) {
+    try {
+      const costBreakdown = JSON.parse(storedCostBreakdown)
+      
+      // Check if this is the new detailed format
+      if (costBreakdown.technicalLeadArchitect && costBreakdown.seniorDeveloper && costBreakdown.uiuxDesigner && costBreakdown.qaTesting) {
+        // Initialize rate card with actual LLM values (detailed format)
+        technicalLeadRate.value = costBreakdown.technicalLeadArchitect.rate || 3000
+        technicalLeadDays.value = costBreakdown.technicalLeadArchitect.days || 10
+        seniorDevRate.value = costBreakdown.seniorDeveloper.rate || 2000
+        seniorDevDays.value = costBreakdown.seniorDeveloper.days || 20
+        uiuxRate.value = costBreakdown.uiuxDesigner.rate || 1500
+        uiuxDays.value = costBreakdown.uiuxDesigner.days || 15
+        qaRate.value = costBreakdown.qaTesting.rate || 1000
+        qaDays.value = costBreakdown.qaTesting.days || 12
+      } else if (costBreakdown.totalCostMYR) {
+        // Handle old summary format - keep defaults since we don't have detailed breakdown
+        // The defaults will remain as initialized
+      }
+    } catch (error) {
+      console.warn('Failed to parse stored cost breakdown:', error)
+      // Keep default values if parsing fails
+    }
   }
 })
 </script>

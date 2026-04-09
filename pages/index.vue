@@ -299,6 +299,65 @@ const extractMarkdownQuote = (text: string): string | null => {
   }
 }
 
+// Parse detailed cost breakdown from streaming output
+const parseDetailedCostBreakdown = (text: string): Record<string, any> | null => {
+  // Look for detailed cost breakdown JSON in various formats
+  
+  // Format 1: JSON code block with cost breakdown
+  const codeBlockMatches = text.matchAll(/```json\s*({[^`]*?})\s*```/g)
+  for (const match of codeBlockMatches) {
+    if (match[1]) {
+      try {
+        const parsed = JSON.parse(match[1])
+        // Check if it contains the expected cost breakdown structure
+        if (parsed.technicalLeadArchitect && parsed.seniorDeveloper && parsed.uiuxDesigner && parsed.qaTesting) {
+          return parsed
+        }
+      } catch (e) {
+        // Continue to next match
+      }
+    }
+  }
+  
+  // Format 2: Plain JSON object at the end
+  const lines = text.split('\n').reverse()
+  let jsonStr = ''
+  for (const line of lines) {
+    const trimmedLine = line.trim()
+    if (trimmedLine.startsWith('}') && jsonStr === '') {
+      jsonStr = trimmedLine
+    } else if (jsonStr !== '') {
+      jsonStr = trimmedLine + '\n' + jsonStr
+      if (trimmedLine.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(jsonStr)
+          if (parsed.technicalLeadArchitect && parsed.seniorDeveloper && parsed.uiuxDesigner && parsed.qaTesting) {
+            return parsed
+          }
+        } catch (e) {
+          // Continue building JSON string
+        }
+      }
+    }
+  }
+  
+  // Format 3: Search for cost breakdown pattern anywhere in text
+  const costBreakdownPattern = /{\s*"technicalLeadArchitect"\s*:\s*{[^}]*},\s*"seniorDeveloper"\s*:\s*{[^}]*},\s*"uiuxDesigner"\s*:\s*{[^}]*},\s*"qaTesting"\s*:\s*{[^}]*}\s*}/
+  const patternMatch = text.match(costBreakdownPattern)
+  if (patternMatch) {
+    try {
+      const parsed = JSON.parse(patternMatch[0])
+      if (parsed.technicalLeadArchitect && parsed.seniorDeveloper && parsed.uiuxDesigner && parsed.qaTesting) {
+        return parsed
+      }
+    } catch (e) {
+      console.warn('Failed to parse cost breakdown pattern:', e)
+    }
+  }
+  
+  return null
+}
+
 // Streaming cost estimation with LLM thinking process
 const streamEstimateCost = async (requirements: string) => {
   if (!requirements.trim()) {
@@ -423,6 +482,12 @@ const streamEstimateCost = async (requirements: string) => {
             if (markdownQuote) {
               localStorage.setItem('protospec-markdown-quote', markdownQuote)
             }
+            
+            // Extract and save detailed cost breakdown
+            const detailedCostBreakdown = parseDetailedCostBreakdown(streamingOutput.value)
+            if (detailedCostBreakdown) {
+              localStorage.setItem('protospec-cost-breakdown', JSON.stringify(detailedCostBreakdown))
+            }
           } else if (chunk.type === 'result') {
             // Final result
             costPreview.value = {
@@ -455,6 +520,12 @@ const streamEstimateCost = async (requirements: string) => {
           const markdownQuote = extractMarkdownQuote(streamingOutput.value)
           if (markdownQuote) {
             localStorage.setItem('protospec-markdown-quote', markdownQuote)
+          }
+          
+          // Extract and save detailed cost breakdown
+          const detailedCostBreakdown = parseDetailedCostBreakdown(streamingOutput.value)
+          if (detailedCostBreakdown) {
+            localStorage.setItem('protospec-cost-breakdown', JSON.stringify(detailedCostBreakdown))
           }
         }
       }
@@ -508,6 +579,12 @@ const streamEstimateCost = async (requirements: string) => {
         if (markdownQuote) {
           localStorage.setItem('protospec-markdown-quote', markdownQuote)
         }
+        
+        // Extract and save detailed cost breakdown
+        const detailedCostBreakdown = parseDetailedCostBreakdown(streamingOutput.value)
+        if (detailedCostBreakdown) {
+          localStorage.setItem('protospec-cost-breakdown', JSON.stringify(detailedCostBreakdown))
+        }
       }
     }
     
@@ -522,6 +599,12 @@ const streamEstimateCost = async (requirements: string) => {
     // Ensure we scroll to bottom one final time
     await nextTick()
     scrollToBottom()
+    
+    // Final check for detailed cost breakdown after streaming completes
+    const finalDetailedCostBreakdown = parseDetailedCostBreakdown(streamingOutput.value)
+    if (finalDetailedCostBreakdown) {
+      localStorage.setItem('protospec-cost-breakdown', JSON.stringify(finalDetailedCostBreakdown))
+    }
   }
 }
 
@@ -553,7 +636,9 @@ const generateQuote = async () => {
   isGenerating.value = true
   try {
     // Save all relevant data to localStorage with correct key names
-    if (costPreview.value) {
+    // Only save costPreview as cost-breakdown if no detailed breakdown exists
+    const existingDetailedBreakdown = localStorage.getItem('protospec-cost-breakdown')
+    if (!existingDetailedBreakdown && costPreview.value) {
       localStorage.setItem('protospec-cost-breakdown', JSON.stringify(costPreview.value))
     }
     
