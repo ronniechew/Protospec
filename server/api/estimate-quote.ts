@@ -1,20 +1,18 @@
 import { defineEventHandler, readBody, setResponseStatus } from 'h3'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// Qwen AI client
-interface QwenResponse {
-  output: {
-    choices: Array<{
-      message: {
-        content: string
-      }
-    }>
-  }
+// Qwen AI client using OpenAI-compatible endpoint
+interface OpenAIResponse {
+  choices: Array<{
+    message: {
+      content: string
+    }
+  }>
 }
 
 async function callQwenAPI(prompt: string, apiKey: string): Promise<string> {
-  // Correct Qwen API endpoint and format for DashScope
-  const response = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', {
+  // Use the correct OpenAI-compatible Qwen endpoint
+  const response = await fetch('https://coding-intl.dashscope.aliyuncs.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
@@ -22,14 +20,11 @@ async function callQwenAPI(prompt: string, apiKey: string): Promise<string> {
     },
     body: JSON.stringify({
       model: 'qwen-max',
-      input: {
-        messages: [
-          { role: 'user', content: prompt }
-        ]
-      },
-      parameters: {
-        result_format: 'message'
-      }
+      messages: [
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 2000
     })
   })
 
@@ -38,9 +33,8 @@ async function callQwenAPI(prompt: string, apiKey: string): Promise<string> {
     throw new Error(`Qwen API error: ${response.status} ${errorText}`)
   }
 
-  const data: QwenResponse = await response.json()
-  // Correct path for Qwen response
-  return data.output.choices[0].message.content
+  const data: OpenAIResponse = await response.json()
+  return data.choices[0].message.content
 }
 
 interface QuoteEstimationRequest {
@@ -155,7 +149,7 @@ Guidelines:
     // Try Qwen first if available
     if (qwenApiKey) {
       try {
-        console.log('Attempting Qwen API call')
+        console.log('Attempting Qwen API call with correct endpoint')
         responseText = await callQwenAPI(prompt, qwenApiKey)
         usedModel = 'qwen'
       } catch (qwenError) {
