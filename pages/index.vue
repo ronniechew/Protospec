@@ -87,14 +87,24 @@
               </div>
               
               <!-- Streaming LLM Thinking Process -->
-              <div v-if="showStreamingOutput && streamingOutput" class="mb-6 p-4 bg-gray-50 rounded-md shadow-border border border-gray-200">
+              <div v-if="showStreamingOutput" class="mb-6 p-4 bg-gray-50 rounded-md shadow-border border border-gray-200">
                 <div class="flex items-center space-x-2 mb-2">
                   <span class="text-body-medium text-gray-700">LLM Reasoning Process</span>
-                  <span v-if="isStreaming" class="inline-flex items-center px-2 py-1 rounded-pill text-caption font-medium bg-blue-100 text-blue-800">
-                    Thinking...
+                  <span v-if="isStreaming || isThinking" class="inline-flex items-center px-2 py-1 rounded-pill text-caption font-medium bg-blue-100 text-blue-800">
+                    {{ isThinking ? 'Thinking...' : 'Streaming...' }}
                   </span>
                 </div>
-                <pre class="text-mono-body text-gray-600 whitespace-pre-wrap break-words max-h-60 overflow-y-auto p-2 bg-white rounded border border-gray-200">
+                <!-- Show "LLM is thinking..." immediately when estimation starts -->
+                <div v-if="isThinking && !streamingOutput" class="text-mono-body text-gray-600 whitespace-pre-wrap break-words p-2 bg-white rounded border border-gray-200">
+                  LLM is thinking...
+                </div>
+                <!-- Show streaming output with auto-scroll -->
+                <pre 
+                  v-else-if="streamingOutput" 
+                  ref="streamingOutputRef"
+                  class="text-mono-body text-gray-600 whitespace-pre-wrap break-words max-h-60 overflow-y-auto p-2 bg-white rounded border border-gray-200"
+                  @scroll="handleScroll"
+                >
 {{ streamingOutput }}
                 </pre>
               </div>
@@ -128,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { useRequirementTemplates } from '~/composables/useRequirementTemplates'
 
 const { templates, applyTemplate } = useRequirementTemplates()
@@ -150,6 +160,9 @@ const showApiKeyError = ref(false)
 const showStreamingOutput = ref(false)
 const streamingOutput = ref('')
 const isStreaming = ref(false)
+const isThinking = ref(false) // New: shows "LLM is thinking..." immediately
+const streamingOutputRef = ref<HTMLPreElement | null>(null)
+const autoScrollEnabled = ref(true) // Controls auto-scroll behavior
 
 // Check if API key is available
 const hasApiKey = () => {
@@ -161,6 +174,59 @@ const applyTemplateToForm = (templateId: string) => {
   formData.value.requirements = applyTemplate(templateId, formData.value.requirements)
 }
 
+// Auto-scroll to bottom of streaming output
+const scrollToBottom = () => {
+  if (autoScrollEnabled.value && streamingOutputRef.value) {
+    streamingOutputRef.value.scrollTop = streamingOutputRef.value.scrollHeight
+  }
+}
+
+// Handle user scroll interaction
+const handleScroll = (event: Event) => {
+  const target = event.target as HTMLElement
+  const isScrolledToBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 1
+  autoScrollEnabled.value = isScrolledToBottom
+}
+
+// Detect and parse structured final estimate from streaming output
+const parseFinalEstimate = (text: string): { totalCostMYR: number; totalEstimatedHours: number; confidenceScore: number } | null => {
+  // Look for the structured JSON response at the end
+  const jsonMatch = text.match(/```json\s*({.*?"final_estimate".*?})\s*```/s)
+  if (jsonMatch && jsonMatch[1]) {
+    try {
+      const parsed = JSON.parse(jsonMatch[1])
+      if (parsed.final_estimate) {
+        return {
+          totalCostMYR: parsed.final_estimate.totalCostMYR,
+          totalEstimatedHours: parsed.final_estimate.totalEstimatedHours,
+          confidenceScore: parsed.final_estimate.confidenceScore
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse final estimate JSON:', e)
+    }
+  }
+  
+  // Also check for plain JSON without markdown code blocks
+  const plainJsonMatch = text.match(/({.*?"final_estimate".*?})$/s)
+  if (plainJsonMatch && plainJsonMatch[1]) {
+    try {
+      const parsed = JSON.parse(plainJsonMatch[1])
+      if (parsed.final_estimate) {
+        return {
+          totalCostMYR: parsed.final_estimate.totalCostMYR,
+          totalEstimatedHours: parsed.final_estimate.totalEstimatedHours,
+          confidenceScore: parsed.final_estimate.confidenceScore
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse plain final estimate JSON:', e)
+    }
+  }
+  
+  return null
+}
+
 // Streaming cost estimation with LLM thinking process
 const streamEstimateCost = async (requirements: string) => {
   if (!requirements.trim()) {
@@ -169,6 +235,8 @@ const streamEstimateCost = async (requirements: string) => {
     streamingOutput.value = ''
     showStreamingOutput.value = false
     isStreaming.value = false
+    isThinking.value = false
+    autoScrollEnabled.value = true
     return
   }
   
@@ -179,14 +247,18 @@ const streamEstimateCost = async (requirements: string) => {
     streamingOutput.value = ''
     showStreamingOutput.value = false
     isStreaming.value = false
+    isThinking.value = false
+    autoScrollEnabled.value = true
     return
   }
   
-  // Reset streaming state
-  streamingOutput.value = ''
+  // Set immediate feedback states
+  isThinking.value = true
   showStreamingOutput.value = true
-  isStreaming.value = true
+  streamingOutput.value = ''
   costPreview.value = null
+  isStreaming.value = false
+  autoScrollEnabled.value = true
   
   try {
     const response = await fetch('/api/estimate-quote-stream', {
@@ -198,7 +270,9 @@ const streamEstimateCost = async (requirements: string) => {
         requirements: requirements,
         clientName: formData.value.clientName || 'Anonymous',
         qwenApiKey: localStorage.getItem('protospec_qwen_api_key') || undefined,
-        geminiApiKey: localStorage.getItem('protospec_gemini_api_key') || undefined
+        geminiApiKey: localStorage.getItem('protospec_gemini_api_key') || undefined,
+        // Enhanced system prompt instruction for structured final response
+        systemPromptEnhancement: 'Conclude your response with a structured JSON object in the following format:\n```json\n{"final_estimate": {"totalCostMYR": 12345, "totalEstimatedHours": 176, "confidenceScore": 0.95}}\n```'
       })
     })
     
@@ -208,6 +282,7 @@ const streamEstimateCost = async (requirements: string) => {
       console.error('Estimation API error:', errorData.error || response.statusText)
       costPreview.value = null
       streamingOutput.value += `\nError: ${errorData.error || response.statusText}`
+      isThinking.value = false
       isStreaming.value = false
       return
     }
@@ -220,6 +295,9 @@ const streamEstimateCost = async (requirements: string) => {
     if (!reader) {
       throw new Error('ReadableStream not supported')
     }
+    
+    isThinking.value = false
+    isStreaming.value = true
     
     while (true) {
       const { done, value } = await reader.read()
@@ -242,6 +320,20 @@ const streamEstimateCost = async (requirements: string) => {
           if (chunk.type === 'thinking') {
             // Append thinking process
             streamingOutput.value += chunk.content
+            // Trigger auto-scroll after DOM update
+            await nextTick()
+            scrollToBottom()
+            
+            // Check for final structured estimate in the content
+            const finalEstimate = parseFinalEstimate(streamingOutput.value)
+            if (finalEstimate) {
+              costPreview.value = {
+                totalEstimatedHours: finalEstimate.totalEstimatedHours,
+                totalCostMYR: finalEstimate.totalCostMYR,
+                aiPowered: true,
+                confidenceScore: finalEstimate.confidenceScore
+              }
+            }
           } else if (chunk.type === 'result') {
             // Final result
             costPreview.value = {
@@ -254,6 +346,20 @@ const streamEstimateCost = async (requirements: string) => {
         } catch (parseError) {
           // If not valid JSON, treat as plain text thinking output
           streamingOutput.value += line + '\n'
+          // Trigger auto-scroll after DOM update
+          await nextTick()
+          scrollToBottom()
+          
+          // Check for final structured estimate in the content
+          const finalEstimate = parseFinalEstimate(streamingOutput.value)
+          if (finalEstimate) {
+            costPreview.value = {
+              totalEstimatedHours: finalEstimate.totalEstimatedHours,
+              totalCostMYR: finalEstimate.totalCostMYR,
+              aiPowered: true,
+              confidenceScore: finalEstimate.confidenceScore
+            }
+          }
         }
       }
     }
@@ -264,6 +370,18 @@ const streamEstimateCost = async (requirements: string) => {
         const chunk = JSON.parse(buffer)
         if (chunk.type === 'thinking') {
           streamingOutput.value += chunk.content
+          await nextTick()
+          scrollToBottom()
+          
+          const finalEstimate = parseFinalEstimate(streamingOutput.value)
+          if (finalEstimate) {
+            costPreview.value = {
+              totalEstimatedHours: finalEstimate.totalEstimatedHours,
+              totalCostMYR: finalEstimate.totalCostMYR,
+              aiPowered: true,
+              confidenceScore: finalEstimate.confidenceScore
+            }
+          }
         } else if (chunk.type === 'result') {
           costPreview.value = {
             totalEstimatedHours: chunk.data.estimatedHours,
@@ -274,6 +392,18 @@ const streamEstimateCost = async (requirements: string) => {
         }
       } catch (parseError) {
         streamingOutput.value += buffer + '\n'
+        await nextTick()
+        scrollToBottom()
+        
+        const finalEstimate = parseFinalEstimate(streamingOutput.value)
+        if (finalEstimate) {
+          costPreview.value = {
+            totalEstimatedHours: finalEstimate.totalEstimatedHours,
+            totalCostMYR: finalEstimate.totalCostMYR,
+            aiPowered: true,
+            confidenceScore: finalEstimate.confidenceScore
+          }
+        }
       }
     }
     
@@ -283,6 +413,10 @@ const streamEstimateCost = async (requirements: string) => {
     costPreview.value = null
   } finally {
     isStreaming.value = false
+    isThinking.value = false
+    // Ensure we scroll to bottom one final time
+    await nextTick()
+    scrollToBottom()
   }
 }
 
@@ -321,7 +455,9 @@ const generateQuote = async () => {
         requirements: formData.value.requirements,
         clientName: formData.value.clientName,
         qwenApiKey: localStorage.getItem('protospec_qwen_api_key') || undefined,
-        geminiApiKey: localStorage.getItem('protospec_gemini_api_key') || undefined
+        geminiApiKey: localStorage.getItem('protospec_gemini_api_key') || undefined,
+        // Enhanced system prompt instruction for structured final response
+        systemPromptEnhancement: 'Conclude your response with a structured JSON object in the following format:\n```json\n{"final_estimate": {"totalCostMYR": 12345, "totalEstimatedHours": 176, "confidenceScore": 0.95}}\n```'
       })
     })
     
