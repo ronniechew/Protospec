@@ -10,7 +10,7 @@ interface OpenAIResponse {
   }>
 }
 
-async function callQwenAPI(prompt: string, apiKey: string): Promise<string> {
+async function callQwenAPI(projectRequirements: string, apiKey: string): Promise<string> {
   // Use the correct OpenAI-compatible Qwen endpoint
   const response = await fetch('https://coding-intl.dashscope.aliyuncs.com/v1/chat/completions', {
     method: 'POST',
@@ -19,10 +19,34 @@ async function callQwenAPI(prompt: string, apiKey: string): Promise<string> {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'qwen-max',
+      model: 'qwen3.5-plus',
       messages: [
-        { role: 'user', content: prompt }
+        {
+          role: 'system',
+          content: `You are an expert Software Estimator and Solution Architect specializing in the Malaysian tech market. Your goal is to convert software requirements into a highly realistic, professional quotation in Malaysian Ringgit (MYR).
+
+### Estimation Logic:
+1. **Complexity Analysis**: Categorize tasks into Simple, Medium, and Complex.
+2. **Man-Hour Conversion**: Use a standard 8-hour man-day.
+3. **Market Rates (2026 Malaysia Standard)**:
+ - Technical Lead / Architect: RM 2,500 - RM 3,500 per day
+ - Senior Developer: RM 1,500 - RM 2,200 per day
+ - UI/UX Designer: RM 1,200 - RM 1,800 per day
+ - QA/Testing: RM 800 - RM 1,200 per day
+4. **Buffer**: Include a 15-20% contingency buffer for unforeseen technical debt or scope creep.
+
+### Output Format:
+Provide a structured breakdown including:
+- **Executive Summary**: Total cost and estimated timeline.
+- **Scope Breakdown**: Phase-by-phase man-day estimates.
+- **Pricing Table**: Clear line items in MYR.
+- **Assumptions**: Tech stack (Nuxt 4 / Supabase) and infrastructure needs.
+
+Be pragmatic. If a requirement is vague, state your assumptions clearly rather than underquoting.`
+        },
+        { role: 'user', content: projectRequirements }
       ],
+      stream: false,
       temperature: 0.3,
       max_tokens: 2000
     })
@@ -110,7 +134,36 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const prompt = `
+    let responseText = ''
+    let usedModel = ''
+    let lastError: Error | null = null
+    
+    // Try Qwen first if available
+    if (qwenApiKey) {
+      try {
+        console.log('Attempting Qwen API call with correct endpoint')
+        responseText = await callQwenAPI(body.requirements, qwenApiKey)
+        usedModel = 'qwen'
+      } catch (qwenError) {
+        console.warn('Qwen API failed:', qwenError)
+        lastError = qwenError as Error
+      }
+    }
+    
+    // Try Gemini if Qwen failed or not available
+    if (!responseText && geminiApiKey) {
+      try {
+        console.log('Attempting Gemini API call')
+        const genAI = new GoogleGenerativeAI(geminiApiKey)
+        const model = genAI.getGenerativeModel({ 
+          model: "gemini-1.5-flash",
+          generationConfig: {
+            responseMimeType: "application/json"
+          }
+        })
+        
+        // Create a prompt for Gemini that matches the requirements
+        const geminiPrompt = `
 You are an expert software development estimator specializing in Malaysian SME projects. 
 Analyze the following project requirements and provide a detailed cost estimation in JSON format.
 
@@ -141,35 +194,8 @@ Guidelines:
 - If requirements are vague, make reasonable assumptions but lower confidence score
 - Estimated hours should be realistic for a small-to-medium Malaysian development team
 `
-
-    let responseText = ''
-    let usedModel = ''
-    let lastError: Error | null = null
-    
-    // Try Qwen first if available
-    if (qwenApiKey) {
-      try {
-        console.log('Attempting Qwen API call with correct endpoint')
-        responseText = await callQwenAPI(prompt, qwenApiKey)
-        usedModel = 'qwen'
-      } catch (qwenError) {
-        console.warn('Qwen API failed:', qwenError)
-        lastError = qwenError as Error
-      }
-    }
-    
-    // Try Gemini if Qwen failed or not available
-    if (!responseText && geminiApiKey) {
-      try {
-        console.log('Attempting Gemini API call')
-        const genAI = new GoogleGenerativeAI(geminiApiKey)
-        const model = genAI.getGenerativeModel({ 
-          model: "gemini-1.5-flash",
-          generationConfig: {
-            responseMimeType: "application/json"
-          }
-        })
-        const result = await model.generateContent(prompt)
+        
+        const result = await model.generateContent(geminiPrompt)
         responseText = result.response.text()
         usedModel = 'gemini'
         lastError = null // Clear error since Gemini succeeded
