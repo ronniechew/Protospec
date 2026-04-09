@@ -39,15 +39,13 @@
               ></textarea>
             </div>
 
-            <!-- LLM Reasoning Summary -->
-            <div class="mb-8">
-              <h2 class="text-subheading-large text-black mb-4">LLM Analysis & Reasoning</h2>
-              <textarea
-                v-model="llmReasoning"
-                rows="8"
-                class="w-full px-4 py-2 rounded-md shadow-border focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] text-mono-body leading-relaxed"
-                placeholder="LLM reasoning process and analysis..."
-              ></textarea>
+            <!-- Quote Preview (Professional Markdown) -->
+            <div class="mb-8" v-if="markdownQuote">
+              <h2 class="text-subheading-large text-black mb-4">Quote Preview</h2>
+              <div 
+                class="prose prose-purple max-w-none p-6 bg-gray-50 rounded-md border border-purple/20"
+                v-html="parsedMarkdown"
+              ></div>
             </div>
 
             <!-- Interactive Rate Card -->
@@ -256,16 +254,51 @@ const quoteDate = ref(new Date().toISOString().split('T')[0])
 
 // Project details
 const requirements = ref('')
-const llmReasoning = ref('')
+const markdownQuote = ref('')
+
+// Parse markdown for display
+const parsedMarkdown = computed(() => {
+  if (!markdownQuote.value) return ''
+  
+  let html = markdownQuote.value
+  
+  // Handle headers
+  html = html.replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-purple-text mt-6 mb-4">$1</h2>')
+  html = html.replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold text-black mt-4 mb-2">$1</h3>')
+  html = html.replace(/^#### (.*$)/gm, '<h4 class="text-base font-medium text-black mt-3 mb-2">$1</h4>')
+  
+  // Handle bold and italic
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>')
+  html = html.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+  
+  // Handle tables
+  html = html.replace(/<table>/g, '<table class="w-full my-4 border-collapse">')
+  html = html.replace(/<thead>/g, '<thead class="bg-purple/10">')
+  html = html.replace(/<th>/g, '<th class="text-left py-2 px-3 text-body-medium text-purple-text border border-purple/20">')
+  html = html.replace(/<td>/g, '<td class="py-2 px-3 text-body-small border border-purple/20">')
+  
+  // Handle lists
+  html = html.replace(/^(\d+)\. (.*$)/gm, '<li class="ml-6 list-decimal">$2</li>')
+  html = html.replace(/^- (.*$)/gm, '<li class="ml-6 list-disc">$1</li>')
+  
+  // Wrap lists in proper tags
+  html = html.replace(/(<li.*?>.*?<\/li>)+/gs, '<ol class="list-decimal space-y-1">$&</ol>')
+  html = html.replace(/(<li.*?>.*?<\/li>)+/gs, '<ul class="list-disc space-y-1">$&</ul>')
+  
+  // Handle paragraphs
+  html = html.replace(/^(?!<[h|t|l])/gm, '<p class="mb-3 text-body-medium text-black">$&</p>')
+  
+  return html
+})
 
 // Rate card configuration with flexible ranges
-const technicalLeadRate = ref(3000) // Default reasonable value
+const technicalLeadRate = ref(3000)
 const technicalLeadDays = ref(10)
-const seniorDevRate = ref(2000) // Default reasonable value  
+const seniorDevRate = ref(2000)
 const seniorDevDays = ref(20)
-const uiuxRate = ref(1500) // Default reasonable value
+const uiuxRate = ref(1500)
 const uiuxDays = ref(15)
-const qaRate = ref(1000) // Default reasonable value
+const qaRate = ref(1000)
 const qaDays = ref(12)
 
 // Computed costs
@@ -283,7 +316,7 @@ const exportAsPDF = () => {
     clientName: clientName.value,
     quoteDate: quoteDate.value,
     requirements: requirements.value,
-    llmReasoning: llmReasoning.value,
+    markdownQuote: markdownQuote.value,
     costBreakdown: {
       technicalLead: { rate: technicalLeadRate.value, days: technicalLeadDays.value, cost: technicalLeadCost.value },
       seniorDev: { rate: seniorDevRate.value, days: seniorDevDays.value, cost: seniorDevCost.value },
@@ -297,15 +330,13 @@ const exportAsPDF = () => {
 }
 
 const saveQuote = () => {
-  // Save quote logic would go here
   alert('Quote saved successfully!')
 }
 
-// Load data from localStorage if available (from estimation process)
+// Load data from localStorage
 onMounted(() => {
   const storedFormData = localStorage.getItem('protospec-form-data')
-  const storedCostPreview = localStorage.getItem('protospec-cost-preview')
-  const storedLlmReasoning = localStorage.getItem('protospec-llm-reasoning')
+  const storedMarkdownQuote = localStorage.getItem('protospec-markdown-quote')
   
   if (storedFormData) {
     const formData = JSON.parse(storedFormData)
@@ -313,13 +344,8 @@ onMounted(() => {
     requirements.value = formData.requirements || ''
   }
   
-  if (storedLlmReasoning) {
-    llmReasoning.value = storedLlmReasoning
-  } else if (storedCostPreview) {
-    const costPreview = JSON.parse(storedCostPreview)
-    // Note: In a real implementation, you'd parse the LLM reasoning to extract role-specific estimates
-    // For now, we'll use reasonable defaults based on total cost
-    llmReasoning.value = 'LLM analysis and reasoning would appear here...'
+  if (storedMarkdownQuote) {
+    markdownQuote.value = storedMarkdownQuote
   }
 })
 </script>
@@ -338,6 +364,10 @@ onMounted(() => {
   
   .bg-purple-light\/10 {
     background-color: #f9f5ff !important;
+  }
+  
+  .prose {
+    font-size: 14px !important;
   }
 }
 </style>
