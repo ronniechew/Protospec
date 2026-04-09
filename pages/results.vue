@@ -1,13 +1,16 @@
 <template>
   <div class="min-h-screen bg-white">
-    <header class="bg-white shadow-border">
+    <header class="bg-white shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08)]">
       <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
         <div>
           <h1 class="text-display-hero text-black">Protospec Quote</h1>
-          <p class="mt-2 text-body text-secondary">Your software development quotation</p>
+          <p class="mt-2 text-body-large text-secondary">Professional software development quotation</p>
         </div>
         <nav class="hidden md:block">
-          <a href="/settings" class="text-link hover:text-purple font-medium transition-colors">
+          <a href="/" class="text-link hover:text-link/80 font-medium transition-colors text-button mr-4">
+            Back to Estimator
+          </a>
+          <a href="/settings" class="text-link hover:text-link/80 font-medium transition-colors text-button">
             Settings
           </a>
         </nav>
@@ -16,81 +19,240 @@
     <main>
       <div class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
         <div class="px-4 py-6 sm:px-0">
-          <div class="bg-white rounded-md p-6 md:p-8 shadow-card">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-              <div>
-                <h2 class="text-subheading-large text-black">{{ quote.clientName }} Project</h2>
-                <p class="text-body-small text-tertiary mt-2">Generated on {{ formatDate(new Date()) }}</p>
-                <div v-if="quote.aiPowered" class="mt-2 inline-flex items-center px-3 py-1 rounded-pill text-caption font-medium bg-purple-light text-purple-text">
-                  {{ quote.modelUsed ? quote.modelUsed.toUpperCase() + '-powered estimation' : 'AI-powered estimation' }}
-                  <span v-if="quote.confidenceScore !== undefined" class="ml-2">
-                    ({{ Math.round(quote.confidenceScore * 100) }}% confidence)
-                  </span>
-                </div>
-                <div v-else class="mt-2 inline-flex items-center px-3 py-1 rounded-pill text-caption font-medium bg-purple-light/50 text-tertiary">
-                  Rule-based estimation
-                </div>
-              </div>
-              <div class="text-right mt-4 md:mt-0">
-                <p class="text-display-hero font-semibold text-purple">RM {{ quote.totalCostMYR.toLocaleString() }}</p>
-                <p class="text-body-small text-secondary mt-2">{{ quote.totalEstimatedHours }} hours estimated</p>
-              </div>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div class="rounded-md p-6 shadow-card">
-                <h3 class="font-medium text-card-title text-black mb-4">Project Summary</h3>
-                <p class="text-body text-secondary">{{ quote.requirements }}</p>
-              </div>
-              <div class="rounded-md p-6 shadow-card">
-                <h3 class="font-medium text-card-title text-black mb-4">Rate Card</h3>
-                <p class="text-body text-secondary mb-4">Malaysian SME Standard</p>
-                <div class="text-body-small text-secondary space-y-2">
-                  <p>Frontend (Mid): RM 65/hour</p>
-                  <p>Backend (Mid): RM 70/hour</p>
-                  <p>Fullstack (Mid): RM 75/hour</p>
-                </div>
-              </div>
-            </div>
-            
+          <div class="bg-white rounded-md p-6 md:p-8 relative shadow-card">
+            <!-- Client Information -->
             <div class="mb-8">
-              <h3 class="font-medium text-section-heading text-black mb-6">Requirements Analysis</h3>
-              <div class="space-y-4">
-                <div v-for="(req, index) in quote.requirementsAnalysis" :key="index" 
-                     class="flex items-start pb-4 last:border-0 last:pb-0">
-                  <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-purple/10 rounded-full mr-4 min-w-[40px] min-h-[40px]">
-                    <span class="text-purple font-medium text-body-small">{{ index + 1 }}</span>
-                  </div>
-                  <div class="flex-1">
-                    <p class="text-body text-black">{{ req.description }}</p>
-                    <div class="flex flex-wrap items-center mt-3 gap-3">
-                      <span class="inline-flex items-center px-3 py-1 rounded-pill text-caption font-medium bg-purple-light text-purple-text">
-                        {{ req.category }}
-                      </span>
-                      <span class="text-body-small text-tertiary">
-                        Complexity: {{ req.complexityScore }}
-                      </span>
-                      <span v-if="req.hours" class="text-body-small text-tertiary">
-                        {{ req.hours }} hours
-                      </span>
+              <h2 class="text-subheading-large text-black mb-4">Client Information</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-body-medium text-black mb-2">Client Name</label>
+                  <input
+                    v-model="clientName"
+                    type="text"
+                    class="w-full px-4 py-2 rounded-md shadow-border focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] text-body-small"
+                    placeholder="Enter client name"
+                  />
+                </div>
+                <div>
+                  <label class="block text-body-medium text-black mb-2">Quote Date</label>
+                  <input
+                    v-model="quoteDate"
+                    type="date"
+                    class="w-full px-4 py-2 rounded-md shadow-border focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] text-body-small"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Project Requirements -->
+            <div class="mb-8">
+              <h2 class="text-subheading-large text-black mb-4">Project Requirements</h2>
+              <textarea
+                v-model="requirements"
+                rows="6"
+                class="w-full px-4 py-2 rounded-md shadow-border focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] text-mono-body leading-relaxed"
+                placeholder="Project requirements summary..."
+              ></textarea>
+            </div>
+
+            <!-- LLM Reasoning Summary -->
+            <div class="mb-8">
+              <h2 class="text-subheading-large text-black mb-4">LLM Analysis & Reasoning</h2>
+              <textarea
+                v-model="llmReasoning"
+                rows="8"
+                class="w-full px-4 py-2 rounded-md shadow-border focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] text-mono-body leading-relaxed"
+                placeholder="LLM reasoning process and analysis..."
+              ></textarea>
+            </div>
+
+            <!-- Interactive Rate Card -->
+            <div class="mb-8">
+              <h2 class="text-subheading-large text-black mb-6">Rate Card Configuration</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Technical Lead / Architect -->
+                <div class="bg-purple-light/10 p-4 rounded-md border border-purple/20">
+                  <h3 class="font-medium text-body-medium text-purple-text mb-3">Technical Lead / Architect</h3>
+                  <div class="mb-2">
+                    <label class="block text-caption text-secondary mb-1">Daily Rate: RM {{ Math.round(technicalLeadRate) }}</label>
+                    <input
+                      v-model="technicalLeadRate"
+                      type="range"
+                      min="2500"
+                      max="3500"
+                      step="50"
+                      class="w-full h-2 bg-purple/20 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div class="flex justify-between text-caption text-secondary mt-1">
+                      <span>RM 2,500</span>
+                      <span>RM 3,500</span>
                     </div>
                   </div>
+                  <div>
+                    <label class="block text-caption text-secondary mb-1">Days: {{ technicalLeadDays }}</label>
+                    <input
+                      v-model="technicalLeadDays"
+                      type="number"
+                      min="1"
+                      max="100"
+                      class="w-full px-2 py-1 text-body-small rounded border border-purple/30 focus:outline-purple focus:ring-1 focus:ring-purple"
+                    />
+                  </div>
+                </div>
+
+                <!-- Senior Developer -->
+                <div class="bg-purple-light/10 p-4 rounded-md border border-purple/20">
+                  <h3 class="font-medium text-body-medium text-purple-text mb-3">Senior Developer</h3>
+                  <div class="mb-2">
+                    <label class="block text-caption text-secondary mb-1">Daily Rate: RM {{ Math.round(seniorDevRate) }}</label>
+                    <input
+                      v-model="seniorDevRate"
+                      type="range"
+                      min="1500"
+                      max="2200"
+                      step="50"
+                      class="w-full h-2 bg-purple/20 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div class="flex justify-between text-caption text-secondary mt-1">
+                      <span>RM 1,500</span>
+                      <span>RM 2,200</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-caption text-secondary mb-1">Days: {{ seniorDevDays }}</label>
+                    <input
+                      v-model="seniorDevDays"
+                      type="number"
+                      min="1"
+                      max="100"
+                      class="w-full px-2 py-1 text-body-small rounded border border-purple/30 focus:outline-purple focus:ring-1 focus:ring-purple"
+                    />
+                  </div>
+                </div>
+
+                <!-- UI/UX Designer -->
+                <div class="bg-purple-light/10 p-4 rounded-md border border-purple/20">
+                  <h3 class="font-medium text-body-medium text-purple-text mb-3">UI/UX Designer</h3>
+                  <div class="mb-2">
+                    <label class="block text-caption text-secondary mb-1">Daily Rate: RM {{ Math.round(uiuxRate) }}</label>
+                    <input
+                      v-model="uiuxRate"
+                      type="range"
+                      min="1200"
+                      max="1800"
+                      step="50"
+                      class="w-full h-2 bg-purple/20 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div class="flex justify-between text-caption text-secondary mt-1">
+                      <span>RM 1,200</span>
+                      <span>RM 1,800</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-caption text-secondary mb-1">Days: {{ uiuxDays }}</label>
+                    <input
+                      v-model="uiuxDays"
+                      type="number"
+                      min="1"
+                      max="100"
+                      class="w-full px-2 py-1 text-body-small rounded border border-purple/30 focus:outline-purple focus:ring-1 focus:ring-purple"
+                    />
+                  </div>
+                </div>
+
+                <!-- QA/Testing -->
+                <div class="bg-purple-light/10 p-4 rounded-md border border-purple/20">
+                  <h3 class="font-medium text-body-medium text-purple-text mb-3">QA/Testing</h3>
+                  <div class="mb-2">
+                    <label class="block text-caption text-secondary mb-1">Daily Rate: RM {{ Math.round(qaRate) }}</label>
+                    <input
+                      v-model="qaRate"
+                      type="range"
+                      min="800"
+                      max="1200"
+                      step="50"
+                      class="w-full h-2 bg-purple/20 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div class="flex justify-between text-caption text-secondary mt-1">
+                      <span>RM 800</span>
+                      <span>RM 1,200</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-caption text-secondary mb-1">Days: {{ qaDays }}</label>
+                    <input
+                      v-model="qaDays"
+                      type="number"
+                      min="1"
+                      max="100"
+                      class="w-full px-2 py-1 text-body-small rounded border border-purple/30 focus:outline-purple focus:ring-1 focus:ring-purple"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <div class="flex flex-col sm:flex-row justify-end space-y-4 sm:space-y-0 sm:space-x-4">
+
+            <!-- Cost Breakdown -->
+            <div class="mb-8">
+              <h2 class="text-subheading-large text-black mb-6">Cost Breakdown</h2>
+              <div class="border border-purple/20 rounded-md overflow-hidden">
+                <table class="w-full">
+                  <thead class="bg-purple/10">
+                    <tr>
+                      <th class="text-left py-3 px-4 text-body-medium text-purple-text">Role</th>
+                      <th class="text-right py-3 px-4 text-body-medium text-purple-text">Daily Rate</th>
+                      <th class="text-right py-3 px-4 text-body-medium text-purple-text">Days</th>
+                      <th class="text-right py-3 px-4 text-body-medium text-purple-text">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="border-b border-purple/10">
+                      <td class="py-3 px-4 text-body-small">Technical Lead / Architect</td>
+                      <td class="text-right py-3 px-4 text-body-small">RM {{ Math.round(technicalLeadRate).toLocaleString() }}</td>
+                      <td class="text-right py-3 px-4 text-body-small">{{ technicalLeadDays }}</td>
+                      <td class="text-right py-3 px-4 text-body-small font-medium">RM {{ Math.round(technicalLeadCost).toLocaleString() }}</td>
+                    </tr>
+                    <tr class="border-b border-purple/10">
+                      <td class="py-3 px-4 text-body-small">Senior Developer</td>
+                      <td class="text-right py-3 px-4 text-body-small">RM {{ Math.round(seniorDevRate).toLocaleString() }}</td>
+                      <td class="text-right py-3 px-4 text-body-small">{{ seniorDevDays }}</td>
+                      <td class="text-right py-3 px-4 text-body-small font-medium">RM {{ Math.round(seniorDevCost).toLocaleString() }}</td>
+                    </tr>
+                    <tr class="border-b border-purple/10">
+                      <td class="py-3 px-4 text-body-small">UI/UX Designer</td>
+                      <td class="text-right py-3 px-4 text-body-small">RM {{ Math.round(uiuxRate).toLocaleString() }}</td>
+                      <td class="text-right py-3 px-4 text-body-small">{{ uiuxDays }}</td>
+                      <td class="text-right py-3 px-4 text-body-small font-medium">RM {{ Math.round(uiuxCost).toLocaleString() }}</td>
+                    </tr>
+                    <tr class="border-b border-purple/10">
+                      <td class="py-3 px-4 text-body-small">QA/Testing</td>
+                      <td class="text-right py-3 px-4 text-body-small">RM {{ Math.round(qaRate).toLocaleString() }}</td>
+                      <td class="text-right py-3 px-4 text-body-small">{{ qaDays }}</td>
+                      <td class="text-right py-3 px-4 text-body-small font-medium">RM {{ Math.round(qaCost).toLocaleString() }}</td>
+                    </tr>
+                    <tr class="bg-purple/5">
+                      <td class="py-4 px-4 text-body-medium font-medium text-purple-text">Total</td>
+                      <td colspan="2"></td>
+                      <td class="text-right py-4 px-4 text-card-title font-bold text-purple-text">RM {{ Math.round(totalCost).toLocaleString() }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-end">
               <button
-                @click="goBack"
-                class="inline-flex items-center px-6 py-3 text-button font-medium rounded-md text-black bg-white hover:bg-purple-light/50 focus:outline-focus focus:ring-4 focus:ring-ring shadow-card min-h-[44px]"
+                @click="exportAsPDF"
+                class="inline-flex items-center px-4 py-2 rounded-md text-button font-medium text-white bg-purple hover:bg-purple-dark focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] transition-all duration-200 min-h-[44px] shadow-border hover:shadow-md"
               >
-                Edit Requirements
+                Export as PDF
               </button>
               <button
-                @click="downloadPDF"
-                class="inline-flex items-center px-6 py-3 text-button font-medium rounded-md text-white bg-purple hover:bg-purple-dark focus:outline-focus focus:ring-4 focus:ring-ring shadow-card min-h-[44px]"
+                @click="saveQuote"
+                class="inline-flex items-center px-4 py-2 rounded-md text-button font-medium text-purple-text bg-white border border-purple hover:bg-purple/5 focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] transition-all duration-200 min-h-[44px] shadow-border hover:shadow-md"
               >
-                Download PDF Quote
+                Save Quote
               </button>
             </div>
           </div>
@@ -101,159 +263,98 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { usePDFGenerator } from '~/composables/usePDFGenerator'
 
+// Client information
+const clientName = ref('')
+const quoteDate = ref(new Date().toISOString().split('T')[0])
+
+// Project details
+const requirements = ref('')
+const llmReasoning = ref('')
+
+// Rate card configuration with Malaysian market rates
+const technicalLeadRate = ref(3000) // Default midpoint
+const technicalLeadDays = ref(10)
+const seniorDevRate = ref(1850) // Default midpoint  
+const seniorDevDays = ref(20)
+const uiuxRate = ref(1500) // Default midpoint
+const uiuxDays = ref(15)
+const qaRate = ref(1000) // Default midpoint
+const qaDays = ref(12)
+
+// Computed costs
+const technicalLeadCost = computed(() => technicalLeadRate.value * technicalLeadDays.value)
+const seniorDevCost = computed(() => seniorDevRate.value * seniorDevDays.value)
+const uiuxCost = computed(() => uiuxRate.value * uiuxDays.value)
+const qaCost = computed(() => qaRate.value * qaDays.value)
+const totalCost = computed(() => technicalLeadCost.value + seniorDevCost.value + uiuxCost.value + qaCost.value)
+
+// PDF export functionality
 const { downloadPDF: generateAndDownloadPDF } = usePDFGenerator()
 
-const quote = ref({
-  clientName: 'Sample Client',
-  requirements: 'Build a responsive e-commerce website with user authentication, product catalog, shopping cart, and payment integration.',
-  totalEstimatedHours: 120,
-  totalCostMYR: 8400,
-  aiPowered: false,
-  confidenceScore: 0.7,
-  requirementsAnalysis: [
-    {
-      description: 'User authentication system with login and registration',
-      category: 'Authentication',
-      complexityScore: 1.5,
-      hours: 25,
-      costMYR: 1750
+const exportAsPDF = () => {
+  const quoteData = {
+    clientName: clientName.value,
+    quoteDate: quoteDate.value,
+    requirements: requirements.value,
+    llmReasoning: llmReasoning.value,
+    costBreakdown: {
+      technicalLead: { rate: technicalLeadRate.value, days: technicalLeadDays.value, cost: technicalLeadCost.value },
+      seniorDev: { rate: seniorDevRate.value, days: seniorDevDays.value, cost: seniorDevCost.value },
+      uiux: { rate: uiuxRate.value, days: uiuxDays.value, cost: uiuxCost.value },
+      qa: { rate: qaRate.value, days: qaDays.value, cost: qaCost.value }
     },
-    {
-      description: 'Product catalog with search and filtering',
-      category: 'Database',
-      complexityScore: 1.8,
-      hours: 35,
-      costMYR: 2450
-    },
-    {
-      description: 'Shopping cart functionality',
-      category: 'User Interface',
-      complexityScore: 1.2,
-      hours: 20,
-      costMYR: 1400
-    },
-    {
-      description: 'Payment gateway integration with Stripe',
-      category: 'Payment Processing',
-      complexityScore: 2.5,
-      hours: 30,
-      costMYR: 2100
-    },
-    {
-      description: 'Fully responsive design for mobile and desktop',
-      category: 'Mobile Responsiveness',
-      complexityScore: 0.8,
-      hours: 10,
-      costMYR: 700
-    }
-  ]
-})
+    totalCost: totalCost.value
+  }
+  
+  generateAndDownloadPDF(quoteData, `${clientName.value.replace(/[^a-z0-9]/gi, '_')}_quote.pdf`)
+}
 
+const saveQuote = () => {
+  // Save quote logic would go here
+  alert('Quote saved successfully!')
+}
+
+// Load data from localStorage if available (from estimation process)
 onMounted(() => {
-  // Load data from localStorage if available
-  const formData = localStorage.getItem('protospec-form-data')
-  const costPreview = localStorage.getItem('protospec-cost-preview')
+  const storedFormData = localStorage.getItem('protospec-form-data')
+  const storedCostPreview = localStorage.getItem('protospec-cost-preview')
   
-  if (formData) {
-    try {
-      const parsedFormData = JSON.parse(formData)
-      quote.value.clientName = parsedFormData.clientName
-      quote.value.requirements = parsedFormData.requirements
-      
-      if (costPreview) {
-        const parsedCostPreview = JSON.parse(costPreview)
-        quote.value.totalEstimatedHours = parsedCostPreview.totalEstimatedHours
-        quote.value.totalCostMYR = parsedCostPreview.totalCostMYR
-        quote.value.aiPowered = parsedCostPreview.aiPowered || false
-        quote.value.confidenceScore = parsedCostPreview.confidenceScore
-        
-        // If we have breakdown from LLM, use it directly
-        if (parsedCostPreview.breakdown && parsedCostPreview.aiPowered) {
-          quote.value.requirementsAnalysis = parsedCostPreview.breakdown.map((item: any) => ({
-            description: item.feature,
-            category: item.feature,
-            complexityScore: item.complexity,
-            hours: item.hours,
-            costMYR: item.costMYR
-          }))
-          return
-        }
-      }
-      
-      // Generate requirements analysis based on requirements text (fallback)
-      generateRequirementsAnalysis(parsedFormData.requirements)
-    } catch (error) {
-      console.error('Error loading quote data:', error)
-    }
+  if (storedFormData) {
+    const formData = JSON.parse(storedFormData)
+    clientName.value = formData.clientName || ''
+    requirements.value = formData.requirements || ''
+  }
+  
+  if (storedCostPreview) {
+    const costPreview = JSON.parse(storedCostPreview)
+    // Note: In a real implementation, you'd parse the LLM reasoning to extract role-specific estimates
+    // For now, we'll use reasonable defaults based on total cost
+    llmReasoning.value = 'LLM analysis and reasoning would appear here...'
   }
 })
+</script>
 
-const generateRequirementsAnalysis = (requirements: string) => {
-  // Simple analysis based on keywords
-  const categories = [
-    { keyword: 'authentication|login|register|user account', category: 'Authentication', baseComplexity: 1.5 },
-    { keyword: 'product|catalog|inventory|shopping cart|e-commerce', category: 'E-commerce', baseComplexity: 1.8 },
-    { keyword: 'mobile|responsive|phone|tablet', category: 'Mobile Responsiveness', baseComplexity: 0.8 },
-    { keyword: 'payment|stripe|paypal|fpX|boost|touch n go', category: 'Payment Processing', baseComplexity: 2.5 },
-    { keyword: 'database|sql|postgresql|mongodb', category: 'Database', baseComplexity: 1.6 },
-    { keyword: 'api|integration|third party', category: 'Integration', baseComplexity: 2.0 },
-    { keyword: 'admin|dashboard|report|analytics', category: 'Admin Features', baseComplexity: 1.7 },
-    { keyword: 'seo|search engine|google', category: 'SEO & Marketing', baseComplexity: 1.2 },
-    { keyword: 'security|ssl|https|encryption', category: 'Security', baseComplexity: 2.2 },
-    { keyword: 'real-time|live|websocket|push', category: 'Real-time Features', baseComplexity: 2.8 }
-  ]
-  
-  const lowerRequirements = requirements.toLowerCase()
-  const analysis: any[] = []
-  
-  categories.forEach(({ keyword, category, baseComplexity }) => {
-    const regex = new RegExp(keyword, 'i')
-    if (regex.test(requirements)) {
-      // Adjust complexity based on context
-      let complexity = baseComplexity
-      if (lowerRequirements.includes('simple') || lowerRequirements.includes('basic')) {
-        complexity *= 0.7
-      } else if (lowerRequirements.includes('complex') || lowerRequirements.includes('advanced')) {
-        complexity *= 1.3
-      }
-      
-      analysis.push({
-        description: `Feature related to: ${category.toLowerCase()}`,
-        category: category,
-        complexityScore: Math.round(complexity * 10) / 10
-      })
-    }
-  })
-  
-  // If no specific categories found, add generic ones
-  if (analysis.length === 0) {
-    analysis.push({
-      description: 'General software development requirements',
-      category: 'General Development',
-      complexityScore: 1.0
-    })
+<style scoped>
+/* Print-specific styles for PDF export */
+@media print {
+  .shadow-card, .shadow-border {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
   }
   
-  quote.value.requirementsAnalysis = analysis
+  button {
+    display: none !important;
+  }
+  
+  nav {
+    display: none !important;
+  }
+  
+  header {
+    border-bottom: 2px solid #6b21a8 !important;
+  }
 }
-
-const formatDate = (date: Date): string => {
-  return date.toLocaleDateString('en-MY', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  })
-}
-
-const goBack = () => {
-  // Navigate back to input page
-  window.location.href = '/'
-}
-
-const downloadPDF = () => {
-  generateAndDownloadPDF(quote.value, `${quote.value.clientName.replace(/[^a-z0-9]/gi, '_')}_quote.pdf`)
-}
-</script>
+</style>
