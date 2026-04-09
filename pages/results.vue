@@ -357,13 +357,13 @@ onMounted(() => {
       // Check if this is the new detailed format
       if (costBreakdown.technicalLeadArchitect && costBreakdown.seniorDeveloper && costBreakdown.uiuxDesigner && costBreakdown.qaTesting) {
         // Initialize rate card with actual LLM values (detailed format)
-        technicalLeadRate.value = costBreakdown.technicalLeadArchitect.rate || 3000
+        technicalLeadRate.value = costBreakdown.technicalLeadArchitect.dailyRate || 3000
         technicalLeadDays.value = costBreakdown.technicalLeadArchitect.days || 10
-        seniorDevRate.value = costBreakdown.seniorDeveloper.rate || 2000
+        seniorDevRate.value = costBreakdown.seniorDeveloper.dailyRate || 2000
         seniorDevDays.value = costBreakdown.seniorDeveloper.days || 20
-        uiuxRate.value = costBreakdown.uiuxDesigner.rate || 1500
+        uiuxRate.value = costBreakdown.uiuxDesigner.dailyRate || 1500
         uiuxDays.value = costBreakdown.uiuxDesigner.days || 15
-        qaRate.value = costBreakdown.qaTesting.rate || 1000
+        qaRate.value = costBreakdown.qaTesting.dailyRate || 1000
         qaDays.value = costBreakdown.qaTesting.days || 12
       } else if (costBreakdown.totalCostMYR) {
         // Handle old summary format - keep defaults since we don't have detailed breakdown
