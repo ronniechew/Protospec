@@ -98,11 +98,19 @@ export default defineEventHandler(async (event) => {
       return cached.response
     }
 
-    // Try Qwen first, then Gemini, then fallback to rule-based
     // Prioritize request-provided API keys over environment variables
     const qwenApiKey = body.qwenApiKey || process.env.QWEN_API_KEY
     const geminiApiKey = body.geminiApiKey || process.env.GEMINI_API_KEY
     
+    // Require at least one API key to be configured
+    if (!qwenApiKey && !geminiApiKey) {
+      setResponseStatus(event, 400)
+      return { 
+        error: 'LLM API key required for estimation. Rule-based fallback has been removed per ADR-002.',
+        details: 'Please provide either qwenApiKey or geminiApiKey in the request, or configure QWEN_API_KEY/GEMINI_API_KEY environment variables.'
+      }
+    }
+
     const prompt = `
 You are an expert software development estimator specializing in Malaysian SME projects. 
 Analyze the following project requirements and provide a detailed cost estimation in JSON format.
@@ -165,13 +173,22 @@ Guidelines:
         usedModel = 'gemini'
       } catch (geminiError) {
         console.warn('Gemini API failed:', geminiError)
+        // NO FALLBACK - throw error instead
+        setResponseStatus(event, 500)
+        return { 
+          error: 'LLM estimation failed',
+          details: `Both Qwen and Gemini APIs failed. Qwen error: ${qwenError?.message || 'Not attempted'}, Gemini error: ${geminiError.message}`
+        }
       }
     }
     
-    // If both failed, fall back to rule-based
+    // If no response from either LLM, return error (NO FALLBACK)
     if (!responseText) {
-      console.warn('Both Qwen and Gemini APIs failed or not configured, falling back to rule-based estimation')
-      return await getRuleBasedEstimation(body.requirements)
+      setResponseStatus(event, 500)
+      return { 
+        error: 'LLM estimation unavailable',
+        details: 'No LLM response received. Please check your API keys and try again.'
+      }
     }
     
     let aiResponse: QuoteEstimationResponse
@@ -191,93 +208,32 @@ Guidelines:
       
       return aiResponse
     } catch (parseError) {
-      console.error('Failed to parse Gemini response:', responseText, parseError)
-      // Fall back to rule-based estimation
-      return await getRuleBasedEstimation(body.requirements)
+      console.error('Failed to parse LLM response:', responseText, parseError)
+      // NO FALLBACK - return error instead
+      setResponseStatus(event, 500)
+      return { 
+        error: 'LLM response parsing failed',
+        details: 'The LLM returned an invalid response format. Please try again.'
+      }
     }
 
   } catch (error: any) {
     console.error('Error in estimate-quote endpoint:', error)
     
-    // Handle specific Gemini errors
+    // Handle specific errors without fallback
     if (error.message?.includes('API key')) {
-      console.warn('Gemini API key issue, falling back to rule-based estimation')
-      const body = await readBody<QuoteEstimationRequest>(event)
-      return await getRuleBasedEstimation(body?.requirements || '')
+      setResponseStatus(event, 400)
+      return { 
+        error: 'LLM API key configuration error',
+        details: 'Please verify your LLM API key configuration.'
+      }
     }
     
-    // Fall back to rule-based estimation on any error
-    const body = await readBody<QuoteEstimationRequest>(event)
-    return await getRuleBasedEstimation(body?.requirements || '')
+    // Return error for any other failure (NO FALLBACK)
+    setResponseStatus(event, 500)
+    return { 
+      error: 'Internal estimation error',
+      details: error.message || 'Unknown error occurred during estimation'
+    }
   }
 })
-
-async function getRuleBasedEstimation(requirements: string): Promise<any> {
-  // This replicates the logic from the frontend but returns the full structure
-  if (!requirements.trim()) {
-    return {
-      estimatedHours: 0,
-      totalCostMYR: 0,
-      confidenceScore: 0,
-      breakdown: [],
-      aiPowered: false
-    }
-  }
-
-  const words = requirements.split(/\s+/).filter(word => word.length > 0).length
-  let baseHours = Math.max(20, words * 0.3)
-  
-  const complexityKeywords = [
-    { keyword: 'payment', multiplier: 1.5 },
-    { keyword: 'authentication', multiplier: 1.3 },
-    { keyword: 'mobile app', multiplier: 2.0 },
-    { keyword: 'e-commerce', multiplier: 1.8 },
-    { keyword: 'database', multiplier: 1.4 },
-    { keyword: 'api', multiplier: 1.6 },
-    { keyword: 'integration', multiplier: 1.7 },
-    { keyword: 'real-time', multiplier: 2.0 },
-    { keyword: 'admin dashboard', multiplier: 1.5 },
-    { keyword: 'seo', multiplier: 1.2 }
-  ]
-  
-  let complexityMultiplier = 1.0
-  const lowerRequirements = requirements.toLowerCase()
-  
-  complexityKeywords.forEach(({ keyword, multiplier }) => {
-    if (lowerRequirements.includes(keyword)) {
-      complexityMultiplier += (multiplier - 1) * 0.3
-    }
-  })
-  
-  const estimatedHours = Math.round(baseHours * complexityMultiplier)
-  const hourlyRateMYR = 70
-  const totalCostMYR = estimatedHours * hourlyRateMYR
-  
-  // Generate breakdown based on keywords found
-  const breakdown = complexityKeywords
-    .filter(({ keyword }) => lowerRequirements.includes(keyword))
-    .map(({ keyword, multiplier }) => ({
-      feature: keyword.charAt(0).toUpperCase() + keyword.slice(1),
-      hours: Math.round(estimatedHours * ((multiplier - 1) * 0.3) / complexityMultiplier),
-      costMYR: Math.round(estimatedHours * ((multiplier - 1) * 0.3) / complexityMultiplier * hourlyRateMYR),
-      complexity: multiplier
-    }))
-  
-  // Add base development if no specific features found
-  if (breakdown.length === 0) {
-    breakdown.push({
-      feature: 'General Development',
-      hours: estimatedHours,
-      costMYR: totalCostMYR,
-      complexity: 1.0
-    })
-  }
-
-  return {
-    estimatedHours,
-    totalCostMYR,
-    confidenceScore: Math.min(0.7, requirements.length / 500), // Max 0.7 for rule-based
-    breakdown,
-    aiPowered: false
-  }
-}
