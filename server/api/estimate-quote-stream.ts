@@ -32,20 +32,36 @@ async function callQwenAPIStream(prompt: string, apiKey: string) {
  - QA/Testing: RM 800 - RM 1,200 per day
 4. **Buffer**: Include a 15-20% contingency buffer for unforeseen technical debt or scope creep.
 
-### Output Format:
-Provide a structured breakdown including:
-- **Executive Summary**: Total cost and estimated timeline.
-- **Scope Breakdown**: Phase-by-phase man-day estimates.
-- **Pricing Table**: Clear line items in MYR.
-- **Assumptions**: Tech stack (Nuxt 4 / Supabase) and infrastructure needs.
+### Professional Quote Format:
+Conclude your response with a professional markdown quote in the EXACT format shown below, including ALL sections:
+
+# Professional Quotation
+
+## Executive Summary
+[Brief overview of the project, total investment required, and key deliverables]
+
+## Project Scope & Investment
+[Detailed breakdown of what's included in the project scope with associated costs]
+
+## Implementation Timeline
+[Clear timeline with phases, milestones, and estimated completion dates]
+
+## Payment Milestones
+[Payment schedule tied to project milestones with specific amounts in MYR]
+
+## Technical Specifications & Assumptions
+[Tech stack details (Nuxt 4 / Supabase), infrastructure requirements, and key assumptions made during estimation]
+
+## Acceptance
+[Client acceptance criteria and next steps for project initiation]
 
 ### Final Structured Output:
-At the very end of your response, provide a JSON object with the final estimate in this exact format:
+At the very end of your response, AFTER the professional markdown quote, provide a JSON object with the final estimate in this exact format:
 \`\`\`json
 {"final_estimate": {"totalCostMYR": [final_amount], "totalEstimatedHours": [total_hours], "confidenceScore": [confidence_0_to_1]}}
 \`\`\`
 
-Be pragmatic. If a requirement is vague, state your assumptions clearly rather than underquoting.`
+Be pragmatic. If a requirement is vague, state your assumptions clearly rather than underquoting. Maintain Malaysian market context and 2026 pricing standards throughout your analysis.`
         },
         { role: 'user', content: prompt }
       ],
