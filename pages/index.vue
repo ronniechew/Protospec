@@ -131,8 +131,8 @@
                 </div>
               </div>
               
-              <!-- Generate Quote Button - Only shown when cost estimate exists -->
-              <div v-if="costPreview" class="mt-8 pt-6 border-t border-gray-100 flex justify-end">
+              <!-- Generate Quote Button - Show when any valid quote data exists -->
+              <div v-if="hasValidQuoteData" class="mt-8 pt-6 border-t border-gray-100 flex justify-end">
                 <button
                   type="submit"
                   class="inline-flex items-center px-6 py-3 rounded-lg text-button font-medium text-white bg-purple hover:bg-purple-dark focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] transition-all duration-200 min-h-[48px] shadow-border hover:shadow-md"
@@ -143,7 +143,7 @@
                 </button>
               </div>
               
-              <!-- Placeholder message when no cost estimate exists -->
+              <!-- Placeholder message when no quote data exists -->
               <div v-else class="mt-8 pt-6 border-t border-gray-100 text-center py-4">
                 <p class="text-body-medium text-secondary">
                   Click "Estimate Cost" to generate a cost estimate before creating your quote.
@@ -158,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, computed } from 'vue'
 import { useRequirementTemplates } from '~/composables/useRequirementTemplates'
 
 const { templates, applyTemplate } = useRequirementTemplates()
@@ -185,6 +185,33 @@ const isStreaming = ref(false)
 const isThinking = ref(false) // New: shows "LLM is thinking..." immediately
 const streamingOutputRef = ref<HTMLPreElement | null>(null)
 const autoScrollEnabled = ref(true) // Controls auto-scroll behavior
+
+// Computed property to determine if we have valid quote data to show the Generate Quote button
+const hasValidQuoteData = computed(() => {
+  // Check if we have cost preview
+  if (costPreview.value) {
+    return true;
+  }
+  
+  // Check if we have markdown quote in localStorage
+  const markdownQuote = localStorage.getItem('protospec-markdown-quote');
+  if (markdownQuote && markdownQuote.trim()) {
+    return true;
+  }
+  
+  // Check if we have structured cost breakdown in localStorage
+  const costBreakdown = localStorage.getItem('protospec-cost-preview');
+  if (costBreakdown && costBreakdown.trim()) {
+    return true;
+  }
+  
+  // Check if LLM reasoning output contains professional quote content
+  if (llmReasoningOutput.value && llmReasoningOutput.value.includes('# Professional Quotation')) {
+    return true;
+  }
+  
+  return false;
+});
 
 // AbortController for request cancellation
 let abortController: AbortController | null = null
