@@ -3,14 +3,17 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 // Qwen AI client
 interface QwenResponse {
-  choices: Array<{
-    message: {
-      content: string
-    }
-  }>
+  output: {
+    choices: Array<{
+      message: {
+        content: string
+      }
+    }>
+  }
 }
 
 async function callQwenAPI(prompt: string, apiKey: string): Promise<string> {
+  // Correct Qwen API endpoint and format for DashScope
   const response = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation', {
     method: 'POST',
     headers: {
@@ -31,11 +34,13 @@ async function callQwenAPI(prompt: string, apiKey: string): Promise<string> {
   })
 
   if (!response.ok) {
-    throw new Error(`Qwen API error: ${response.status} ${await response.text()}`)
+    const errorText = await response.text()
+    throw new Error(`Qwen API error: ${response.status} ${errorText}`)
   }
 
   const data: QwenResponse = await response.json()
-  return data.choices[0].message.content
+  // Correct path for Qwen response
+  return data.output.choices[0].message.content
 }
 
 interface QuoteEstimationRequest {
@@ -145,6 +150,7 @@ Guidelines:
 
     let responseText = ''
     let usedModel = ''
+    let lastError: Error | null = null
     
     // Try Qwen first if available
     if (qwenApiKey) {
@@ -153,7 +159,8 @@ Guidelines:
         responseText = await callQwenAPI(prompt, qwenApiKey)
         usedModel = 'qwen'
       } catch (qwenError) {
-        console.warn('Qwen API failed, trying Gemini:', qwenError)
+        console.warn('Qwen API failed:', qwenError)
+        lastError = qwenError as Error
       }
     }
     
@@ -171,49 +178,63 @@ Guidelines:
         const result = await model.generateContent(prompt)
         responseText = result.response.text()
         usedModel = 'gemini'
+        lastError = null // Clear error since Gemini succeeded
       } catch (geminiError) {
         console.warn('Gemini API failed:', geminiError)
-        // NO FALLBACK - throw error instead
+        lastError = geminiError as Error
+      }
+    }
+    
+    // Handle results
+    if (responseText) {
+      // Successfully got response from either LLM
+      let aiResponse: QuoteEstimationResponse
+      try {
+        aiResponse = JSON.parse(responseText)
+        // Validate response structure
+        if (!aiResponse.estimatedHours || !aiResponse.totalCostMYR || !aiResponse.confidenceScore) {
+          throw new Error('Invalid response structure')
+        }
+        
+        // Add AI-powered flag and model info
+        aiResponse.aiPowered = true
+        ;(aiResponse as any).modelUsed = usedModel
+        
+        // Cache the response
+        requestCache.set(cacheKey, { response: aiResponse, timestamp: now })
+        
+        return aiResponse
+      } catch (parseError) {
+        console.error('Failed to parse LLM response:', responseText, parseError)
+        // Return specific parsing error
         setResponseStatus(event, 500)
         return { 
-          error: 'LLM estimation failed',
-          details: `Both Qwen and Gemini APIs failed. Qwen error: ${qwenError?.message || 'Not attempted'}, Gemini error: ${geminiError.message}`
+          error: 'LLM response parsing failed',
+          details: 'The LLM returned an invalid response format. Please try again.'
         }
       }
-    }
-    
-    // If no response from either LLM, return error (NO FALLBACK)
-    if (!responseText) {
+    } else {
+      // Both LLMs failed or weren't available
       setResponseStatus(event, 500)
-      return { 
-        error: 'LLM estimation unavailable',
-        details: 'No LLM response received. Please check your API keys and try again.'
+      const qwenAttempted = !!qwenApiKey
+      const geminiAttempted = !!geminiApiKey
+      
+      let errorMessage = 'LLM estimation unavailable'
+      let errorDetails = ''
+      
+      if (qwenAttempted && geminiAttempted) {
+        errorDetails = `Both Qwen and Gemini APIs failed. Last error: ${lastError?.message || 'Unknown error'}`
+      } else if (qwenAttempted) {
+        errorDetails = `Qwen API failed: ${lastError?.message || 'Unknown error'}`
+      } else if (geminiAttempted) {
+        errorDetails = `Gemini API failed: ${lastError?.message || 'Unknown error'}`
+      } else {
+        errorDetails = 'No LLM response received. Please check your API keys and try again.'
       }
-    }
-    
-    let aiResponse: QuoteEstimationResponse
-    try {
-      aiResponse = JSON.parse(responseText)
-      // Validate response structure
-      if (!aiResponse.estimatedHours || !aiResponse.totalCostMYR || !aiResponse.confidenceScore) {
-        throw new Error('Invalid response structure')
-      }
       
-      // Add AI-powered flag and model info
-      aiResponse.aiPowered = true
-      ;(aiResponse as any).modelUsed = usedModel
-      
-      // Cache the response
-      requestCache.set(cacheKey, { response: aiResponse, timestamp: now })
-      
-      return aiResponse
-    } catch (parseError) {
-      console.error('Failed to parse LLM response:', responseText, parseError)
-      // NO FALLBACK - return error instead
-      setResponseStatus(event, 500)
       return { 
-        error: 'LLM response parsing failed',
-        details: 'The LLM returned an invalid response format. Please try again.'
+        error: errorMessage,
+        details: errorDetails
       }
     }
 
