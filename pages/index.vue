@@ -180,6 +180,7 @@ const costPreview = ref<{
 const showApiKeyError = ref(false)
 const showStreamingOutput = ref(false)
 const streamingOutput = ref('')
+const llmReasoningOutput = ref('') // New: accumulates complete LLM reasoning
 const isStreaming = ref(false)
 const isThinking = ref(false) // New: shows "LLM is thinking..." immediately
 const streamingOutputRef = ref<HTMLPreElement | null>(null)
@@ -280,6 +281,7 @@ const streamEstimateCost = async (requirements: string) => {
   isThinking.value = true
   showStreamingOutput.value = true
   streamingOutput.value = ''
+  llmReasoningOutput.value = '' // Reset LLM reasoning output
   costPreview.value = null
   isStreaming.value = false
   autoScrollEnabled.value = true
@@ -353,6 +355,7 @@ const streamEstimateCost = async (requirements: string) => {
           if (chunk.type === 'thinking') {
             // Append thinking process
             streamingOutput.value += chunk.content
+            llmReasoningOutput.value += chunk.content // Accumulate complete reasoning
             // Trigger auto-scroll after DOM update
             await nextTick()
             scrollToBottom()
@@ -379,6 +382,7 @@ const streamEstimateCost = async (requirements: string) => {
         } catch (parseError) {
           // If not valid JSON, treat as plain text thinking output
           streamingOutput.value += line + '\n'
+          llmReasoningOutput.value += line + '\n' // Accumulate complete reasoning
           // Trigger auto-scroll after DOM update
           await nextTick()
           scrollToBottom()
@@ -403,6 +407,7 @@ const streamEstimateCost = async (requirements: string) => {
         const chunk = JSON.parse(buffer)
         if (chunk.type === 'thinking') {
           streamingOutput.value += chunk.content
+          llmReasoningOutput.value += chunk.content // Accumulate complete reasoning
           await nextTick()
           scrollToBottom()
           
@@ -425,6 +430,7 @@ const streamEstimateCost = async (requirements: string) => {
         }
       } catch (parseError) {
         streamingOutput.value += buffer + '\n'
+        llmReasoningOutput.value += buffer + '\n' // Accumulate complete reasoning
         await nextTick()
         scrollToBottom()
         
@@ -487,6 +493,7 @@ const generateQuote = async () => {
     // Store final quote data in localStorage using the existing cost preview
     localStorage.setItem('protospec-cost-preview', JSON.stringify(finalEstimate))
     localStorage.setItem('protospec-form-data', JSON.stringify(formData.value))
+    localStorage.setItem('protospec-llm-reasoning', llmReasoningOutput.value)
     
     // Navigate to results page with pre-computed data
     window.location.href = '/results'

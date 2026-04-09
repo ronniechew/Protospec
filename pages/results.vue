@@ -247,7 +247,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { usePDFGenerator } from '~/composables/usePDFGenerator'
 
 // Client information
@@ -305,6 +305,7 @@ const saveQuote = () => {
 onMounted(() => {
   const storedFormData = localStorage.getItem('protospec-form-data')
   const storedCostPreview = localStorage.getItem('protospec-cost-preview')
+  const storedLlmReasoning = localStorage.getItem('protospec-llm-reasoning')
   
   if (storedFormData) {
     const formData = JSON.parse(storedFormData)
@@ -312,7 +313,9 @@ onMounted(() => {
     requirements.value = formData.requirements || ''
   }
   
-  if (storedCostPreview) {
+  if (storedLlmReasoning) {
+    llmReasoning.value = storedLlmReasoning
+  } else if (storedCostPreview) {
     const costPreview = JSON.parse(storedCostPreview)
     // Note: In a real implementation, you'd parse the LLM reasoning to extract role-specific estimates
     // For now, we'll use reasonable defaults based on total cost
