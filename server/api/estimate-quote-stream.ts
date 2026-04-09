@@ -39,6 +39,12 @@ Provide a structured breakdown including:
 - **Pricing Table**: Clear line items in MYR.
 - **Assumptions**: Tech stack (Nuxt 4 / Supabase) and infrastructure needs.
 
+### Final Structured Output:
+At the very end of your response, provide a JSON object with the final estimate in this exact format:
+\`\`\`json
+{"final_estimate": {"totalCostMYR": [final_amount], "totalEstimatedHours": [total_hours], "confidenceScore": [confidence_0_to_1]}}
+\`\`\`
+
 Be pragmatic. If a requirement is vague, state your assumptions clearly rather than underquoting.`
         },
         { role: 'user', content: prompt }
@@ -55,30 +61,22 @@ Be pragmatic. If a requirement is vague, state your assumptions clearly rather t
   return response.body
 }
 
-// Helper function to parse SSE chunks and extract content
-function parseSSEChunk(chunk: string): { content: string | null; done: boolean } {
-  // Check for [DONE] marker
-  if (chunk.trim() === 'data: [DONE]') {
-    return { content: null, done: true }
+// Helper function to parse SSE chunks from Qwen API
+function parseSSEChunk(chunk: string) {
+  if (chunk.trim() === '[DONE]') {
+    return { done: true, content: null }
   }
   
-  // Check if it's a valid data chunk
-  if (chunk.startsWith('data: ') && chunk !== 'data: ') {
-    try {
-      const jsonString = chunk.substring(6).trim() // Remove 'data: ' prefix
-      const parsed = JSON.parse(jsonString)
-      
-      // Extract content from choices[0].delta.content
-      if (parsed.choices && parsed.choices.length > 0 && 
-          parsed.choices[0].delta && parsed.choices[0].delta.content) {
-        return { content: parsed.choices[0].delta.content, done: false }
-      }
-    } catch (e) {
-      console.error('Error parsing SSE chunk:', e, 'Chunk:', chunk)
-    }
+  try {
+    // Remove 'data: ' prefix if present
+    const dataStr = chunk.startsWith('data: ') ? chunk.substring(6) : chunk
+    const data = JSON.parse(dataStr)
+    const content = data.choices?.[0]?.delta?.content || ''
+    return { done: false, content }
+  } catch (e) {
+    console.error('Failed to parse SSE chunk:', chunk, e)
+    return { done: false, content: '' }
   }
-  
-  return { content: null, done: false }
 }
 
 export default defineEventHandler(async (event) => {
@@ -100,95 +98,62 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Set proper streaming headers for JSON lines
+    // Set proper streaming headers
     event.node.res.setHeader('Content-Type', 'application/json; charset=utf-8')
     event.node.res.setHeader('Cache-Control', 'no-cache')
     event.node.res.setHeader('Connection', 'keep-alive')
-    event.node.res.setHeader('Transfer-Encoding', 'chunked')
 
     try {
       const stream = await callQwenAPIStream(body.requirements, qwenApiKey)
-      if (stream) {
-        const reader = stream.getReader()
-        let decoder = new TextDecoder()
-        let buffer = ''
-        
-        try {
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            
-            buffer += decoder.decode(value, { stream: true })
-            
-            // Process complete lines from the buffer
-            let lines = buffer.split('\n')
-            buffer = lines.pop() || '' // Keep incomplete line in buffer
-            
-            for (const line of lines) {
-              if (line.trim() === '') continue // Skip empty lines
-              
-              const { content, done: isDone } = parseSSEChunk(line)
-              
-              if (isDone) {
-                // Send final completion message if needed
-                event.node.res.write('\n')
-                event.node.res.end()
-                return
-              }
-              
-              if (content !== null) {
-                // Transform to frontend-compatible JSON format
-                const formattedResponse = {
-                  type: 'thinking',
-                  content: content
-                }
-                
-                // Write as JSON line (newline-delimited JSON)
-                event.node.res.write(JSON.stringify(formattedResponse) + '\n')
-              }
-            }
-          }
-          
-          // Handle any remaining buffer content
-          if (buffer.trim() !== '') {
-            const { content, done: isDone } = parseSSEChunk(buffer)
-            if (isDone) {
-              event.node.res.write('\n')
-            } else if (content !== null) {
-              const formattedResponse = {
-                type: 'thinking',
-                content: content
-              }
-              event.node.res.write(JSON.stringify(formattedResponse) + '\n')
-            }
-          }
-          
-          event.node.res.end()
-        } finally {
-          reader.releaseLock()
-        }
-      } else {
+      if (!stream) {
         throw new Error('No stream returned from Qwen API')
       }
+
+      const reader = stream.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+        
+        for (const line of lines) {
+          if (line.trim() === '') continue
+          
+          const parsed = parseSSEChunk(line)
+          if (parsed.done) {
+            break
+          }
+          
+          if (parsed.content) {
+            // Send structured JSON for frontend consumption
+            const output = JSON.stringify({ type: 'thinking', content: parsed.content }) + '\n'
+            event.node.res.write(output)
+          }
+        }
+      }
+      
+      event.node.res.end()
     } catch (streamError) {
       console.error('Streaming error:', streamError)
-      const errorResponse = {
-        type: 'error',
-        content: 'Streaming failed',
-        details: streamError instanceof Error ? streamError.message : 'Unknown error'
-      }
-      event.node.res.write(JSON.stringify(errorResponse) + '\n')
+      const errorOutput = JSON.stringify({ 
+        type: 'error', 
+        content: 'Streaming failed: ' + (streamError instanceof Error ? streamError.message : 'Unknown error') 
+      }) + '\n'
+      event.node.res.write(errorOutput)
       event.node.res.end()
     }
 
   } catch (error: any) {
     console.error('Error in estimate-quote-stream endpoint:', error)
     setResponseStatus(event, 500)
-    const errorResponse = {
-      type: 'error',
-      content: 'Internal streaming estimation error',
+    return { 
+      error: 'Internal streaming estimation error',
       details: error.message || 'Unknown error occurred during streaming estimation'
     }
-    return errorResponse
   }
 })
