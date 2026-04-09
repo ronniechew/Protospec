@@ -1,7 +1,7 @@
-import { defineEventHandler, readBody, setResponseStatus } from 'h3'
+import { defineEventHandler, readBody, setResponseStatus, sendStream } from 'h3'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// Qwen AI client using OpenAI-compatible endpoint
+// Qwen AI client using OpenAI-compatible endpoint with streaming support
 interface OpenAIResponse {
   choices: Array<{
     message: {
@@ -10,8 +10,74 @@ interface OpenAIResponse {
   }>
 }
 
-async function callQwenAPI(projectRequirements: string, apiKey: string): Promise<string> {
-  // Use the correct OpenAI-compatible Qwen endpoint
+interface OpenAIStreamChunk {
+  id: string
+  object: string
+  created: number
+  model: string
+  choices: Array<{
+    index: number
+    delta: {
+      content?: string
+      role?: string
+    }
+    finish_reason: string | null
+  }>
+}
+
+async function callQwenAPIStream(projectRequirements: string, apiKey: string): Promise<ReadableStream> {
+  // Use the correct OpenAI-compatible Qwen endpoint with streaming enabled
+  const response = await fetch('https://coding-intl.dashscope.aliyuncs.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'qwen3.5-plus',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an expert Software Estimator and Solution Architect specializing in the Malaysian tech market. Your goal is to convert software requirements into a highly realistic, professional quotation in Malaysian Ringgit (MYR).
+
+### Estimation Logic:
+1. **Complexity Analysis**: Categorize tasks into Simple, Medium, and Complex.
+2. **Man-Hour Conversion**: Use a standard 8-hour man-day.
+3. **Market Rates (2026 Malaysia Standard)**:
+ - Technical Lead / Architect: RM 2,500 - RM 3,500 per day
+ - Senior Developer: RM 1,500 - RM 2,200 per day
+ - UI/UX Designer: RM 1,200 - RM 1,800 per day
+ - QA/Testing: RM 800 - RM 1,200 per day
+4. **Buffer**: Include a 15-20% contingency buffer for unforeseen technical debt or scope creep.
+
+### Output Format:
+Provide a structured breakdown including:
+- **Executive Summary**: Total cost and estimated timeline.
+- **Scope Breakdown**: Phase-by-phase man-day estimates.
+- **Pricing Table**: Clear line items in MYR.
+- **Assumptions**: Tech stack (Nuxt 4 / Supabase) and infrastructure needs.
+
+Be pragmatic. If a requirement is vague, state your assumptions clearly rather than underquoting.`
+        },
+        { role: 'user', content: projectRequirements }
+      ],
+      stream: true,
+      temperature: 0.3,
+      max_tokens: 2000
+    })
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Qwen API error: ${response.status} ${errorText}`)
+  }
+
+  // Return the streaming response directly
+  return response.body as ReadableStream
+}
+
+async function callQwenAPINonStream(projectRequirements: string, apiKey: string): Promise<string> {
+  // Non-streaming version for fallback or when streaming isn't needed
   const response = await fetch('https://coding-intl.dashscope.aliyuncs.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -66,6 +132,7 @@ interface QuoteEstimationRequest {
   clientName?: string
   qwenApiKey?: string
   geminiApiKey?: string
+  stream?: boolean // Add stream option to request
 }
 
 interface QuoteEstimationResponse {
@@ -95,6 +162,9 @@ export default defineEventHandler(async (event) => {
       return { error: 'Requirements are required' }
     }
 
+    // Check if streaming is requested
+    const shouldStream = body.stream === true
+
     // Basic rate limiting (max 10 requests per minute per IP)
     const clientIP = event.node.req.headers['x-forwarded-for'] || event.node.req.socket.remoteAddress || 'unknown'
     const now = Date.now()
@@ -114,11 +184,13 @@ export default defineEventHandler(async (event) => {
     clientData.count++
     requestCounts.set(clientIP, clientData)
 
-    // Check cache first
-    const cacheKey = `quote:${body.requirements.trim().substring(0, 100)}`
-    const cached = requestCache.get(cacheKey)
-    if (cached && now - cached.timestamp < CACHE_TTL) {
-      return cached.response
+    // For non-streaming requests, check cache first
+    if (!shouldStream) {
+      const cacheKey = `quote:${body.requirements.trim().substring(0, 100)}`
+      const cached = requestCache.get(cacheKey)
+      if (cached && now - cached.timestamp < CACHE_TTL) {
+        return cached.response
+      }
     }
 
     // Prioritize request-provided API keys over environment variables
@@ -134,6 +206,39 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    // For streaming requests, we can only use Qwen (Gemini doesn't support streaming in this implementation)
+    if (shouldStream) {
+      if (!qwenApiKey) {
+        setResponseStatus(event, 400)
+        return { 
+          error: 'Streaming requires Qwen API key',
+          details: 'Please provide qwenApiKey in the request or configure QWEN_API_KEY environment variable for streaming support.'
+        }
+      }
+      
+      try {
+        console.log('Attempting Qwen API streaming call')
+        const stream = await callQwenAPIStream(body.requirements, qwenApiKey)
+        
+        // Set appropriate headers for streaming
+        event.node.res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+        event.node.res.setHeader('Cache-Control', 'no-cache')
+        event.node.res.setHeader('Connection', 'keep-alive')
+        
+        // Send the stream directly to the client
+        await sendStream(event, stream)
+        return // Streaming response sent, no further processing needed
+      } catch (streamError) {
+        console.error('Qwen streaming API failed:', streamError)
+        setResponseStatus(event, 500)
+        return { 
+          error: 'Streaming estimation failed',
+          details: `Qwen streaming API error: ${(streamError as Error).message}`
+        }
+      }
+    }
+
+    // Non-streaming path (original logic with both Qwen and Gemini support)
     let responseText = ''
     let usedModel = ''
     let lastError: Error | null = null
@@ -142,7 +247,7 @@ export default defineEventHandler(async (event) => {
     if (qwenApiKey) {
       try {
         console.log('Attempting Qwen API call with correct endpoint')
-        responseText = await callQwenAPI(body.requirements, qwenApiKey)
+        responseText = await callQwenAPINonStream(body.requirements, qwenApiKey)
         usedModel = 'qwen'
       } catch (qwenError) {
         console.warn('Qwen API failed:', qwenError)
@@ -221,6 +326,7 @@ Guidelines:
         ;(aiResponse as any).modelUsed = usedModel
         
         // Cache the response
+        const cacheKey = `quote:${body.requirements.trim().substring(0, 100)}`
         requestCache.set(cacheKey, { response: aiResponse, timestamp: now })
         
         return aiResponse

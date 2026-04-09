@@ -86,6 +86,19 @@
                 </div>
               </div>
               
+              <!-- Streaming LLM Thinking Process -->
+              <div v-if="showStreamingOutput && streamingOutput" class="mb-6 p-4 bg-gray-50 rounded-md shadow-border border border-gray-200">
+                <div class="flex items-center space-x-2 mb-2">
+                  <span class="text-body-medium text-gray-700">LLM Reasoning Process</span>
+                  <span v-if="isStreaming" class="inline-flex items-center px-2 py-1 rounded-pill text-caption font-medium bg-blue-100 text-blue-800">
+                    Thinking...
+                  </span>
+                </div>
+                <pre class="text-mono-body text-gray-600 whitespace-pre-wrap break-words max-h-60 overflow-y-auto p-2 bg-white rounded border border-gray-200">
+{{ streamingOutput }}
+                </pre>
+              </div>
+              
               <!-- Error message when no API key -->
               <div v-else-if="showApiKeyError && !hasApiKey()" class="mb-6 p-4 bg-error/10 rounded-md border border-error/20">
                 <div class="text-body-medium text-error">
@@ -134,6 +147,9 @@ const costPreview = ref<{
 } | null>(null)
 
 const showApiKeyError = ref(false)
+const showStreamingOutput = ref(false)
+const streamingOutput = ref('')
+const isStreaming = ref(false)
 
 // Check if API key is available
 const hasApiKey = () => {
@@ -145,11 +161,14 @@ const applyTemplateToForm = (templateId: string) => {
   formData.value.requirements = applyTemplate(templateId, formData.value.requirements)
 }
 
-// Real-time cost estimation - LLM ONLY, NO FALLBACK
-const estimateCost = async (requirements: string) => {
+// Streaming cost estimation with LLM thinking process
+const streamEstimateCost = async (requirements: string) => {
   if (!requirements.trim()) {
     costPreview.value = null
     showApiKeyError.value = false
+    streamingOutput.value = ''
+    showStreamingOutput.value = false
+    isStreaming.value = false
     return
   }
   
@@ -157,11 +176,20 @@ const estimateCost = async (requirements: string) => {
   if (!hasApiKey()) {
     costPreview.value = null
     showApiKeyError.value = true
+    streamingOutput.value = ''
+    showStreamingOutput.value = false
+    isStreaming.value = false
     return
   }
   
+  // Reset streaming state
+  streamingOutput.value = ''
+  showStreamingOutput.value = true
+  isStreaming.value = true
+  costPreview.value = null
+  
   try {
-    const response = await fetch('/api/estimate-quote', {
+    const response = await fetch('/api/estimate-quote-stream', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -174,28 +202,94 @@ const estimateCost = async (requirements: string) => {
       })
     })
     
-    if (response.ok) {
-      const data = await response.json()
-      costPreview.value = {
-        totalEstimatedHours: data.estimatedHours,
-        totalCostMYR: data.totalCostMYR,
-        aiPowered: data.aiPowered === true,
-        confidenceScore: data.confidenceScore
-      }
-      showApiKeyError.value = false
-    } else {
-      // Handle API errors - no fallback
+    if (!response.ok) {
+      // Handle API errors
       const errorData = await response.json().catch(() => ({}))
       console.error('Estimation API error:', errorData.error || response.statusText)
       costPreview.value = null
-      // Don't show API key error if we have keys but API failed
-      showApiKeyError.value = false
+      streamingOutput.value += `\nError: ${errorData.error || response.statusText}`
+      isStreaming.value = false
+      return
     }
+    
+    // Process streaming response
+    const reader = response.body?.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    
+    if (!reader) {
+      throw new Error('ReadableStream not supported')
+    }
+    
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      
+      buffer += decoder.decode(value, { stream: true })
+      
+      // Process complete lines
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || '' // Keep incomplete line in buffer
+      
+      for (const line of lines) {
+        if (line.trim() === '') continue
+        
+        try {
+          // Parse JSON chunk
+          const chunk = JSON.parse(line)
+          
+          // Handle different types of streaming events
+          if (chunk.type === 'thinking') {
+            // Append thinking process
+            streamingOutput.value += chunk.content
+          } else if (chunk.type === 'result') {
+            // Final result
+            costPreview.value = {
+              totalEstimatedHours: chunk.data.estimatedHours,
+              totalCostMYR: chunk.data.totalCostMYR,
+              aiPowered: chunk.data.aiPowered === true,
+              confidenceScore: chunk.data.confidenceScore
+            }
+          }
+        } catch (parseError) {
+          // If not valid JSON, treat as plain text thinking output
+          streamingOutput.value += line + '\n'
+        }
+      }
+    }
+    
+    // Handle any remaining buffer
+    if (buffer.trim()) {
+      try {
+        const chunk = JSON.parse(buffer)
+        if (chunk.type === 'thinking') {
+          streamingOutput.value += chunk.content
+        } else if (chunk.type === 'result') {
+          costPreview.value = {
+            totalEstimatedHours: chunk.data.estimatedHours,
+            totalCostMYR: chunk.data.totalCostMYR,
+            aiPowered: chunk.data.aiPowered === true,
+            confidenceScore: chunk.data.confidenceScore
+          }
+        }
+      } catch (parseError) {
+        streamingOutput.value += buffer + '\n'
+      }
+    }
+    
   } catch (error) {
-    console.error('Estimation request failed:', error)
+    console.error('Streaming estimation request failed:', error)
+    streamingOutput.value += `\nError: Failed to connect to estimation service. ${error.message || ''}`
     costPreview.value = null
-    showApiKeyError.value = false
+  } finally {
+    isStreaming.value = false
   }
+}
+
+// Real-time cost estimation - LLM ONLY, NO FALLBACK
+const estimateCost = async (requirements: string) => {
+  // Use streaming version for real-time updates
+  await streamEstimateCost(requirements)
 }
 
 // Watch requirements for real-time updates
