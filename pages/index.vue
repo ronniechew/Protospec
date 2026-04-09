@@ -123,7 +123,7 @@
                 <button
                   type="submit"
                   class="inline-flex items-center px-4 py-2 rounded-md text-button font-medium text-white bg-purple hover:bg-purple-dark focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] transition-all duration-200 min-h-[44px] shadow-border hover:shadow-md"
-                  :disabled="isGenerating || !formData.requirements.trim()"
+                  :disabled="isGenerating || !formData.requirements.trim() || !costPreview"
                 >
                   <span v-if="!isGenerating">Generate Quote</span>
                   <span v-else>Generating...</span>
@@ -437,52 +437,31 @@ const generateQuote = async () => {
     return
   }
   
-  // Ensure API key is configured before generating quote
-  if (!hasApiKey()) {
-    alert('Please configure your LLM API key in Settings before generating a quote.')
+  // Ensure we have a valid cost preview before generating quote
+  if (!costPreview.value) {
+    alert('Please wait for the cost estimate to complete before generating a quote.')
     return
   }
   
   isGenerating.value = true
   try {
-    // Get final estimation using LLM only
-    const response = await fetch('/api/estimate-quote', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        requirements: formData.value.requirements,
-        clientName: formData.value.clientName,
-        qwenApiKey: localStorage.getItem('protospec_qwen_api_key') || undefined,
-        geminiApiKey: localStorage.getItem('protospec_gemini_api_key') || undefined,
-        // Enhanced system prompt instruction for structured final response
-        systemPromptEnhancement: 'Conclude your response with a structured JSON object in the following format:\n```json\n{"final_estimate": {"totalCostMYR": 12345, "totalEstimatedHours": 176, "confidenceScore": 0.95}}\n```'
-      })
-    })
-    
-    if (response.ok) {
-      const data = await response.json()
-      const finalEstimate = {
-        totalEstimatedHours: data.estimatedHours,
-        totalCostMYR: data.totalCostMYR,
-        aiPowered: data.aiPowered === true,
-        confidenceScore: data.confidenceScore
-      }
-      
-      // Store final estimate in localStorage
-      localStorage.setItem('protospec-cost-preview', JSON.stringify(finalEstimate))
-      localStorage.setItem('protospec-form-data', JSON.stringify(formData.value))
-      
-      // Navigate to results page
-      window.location.href = '/results'
-    } else {
-      const errorData = await response.json().catch(() => ({}))
-      alert(`Failed to generate quote: ${errorData.error || 'Unknown error'}`)
+    // Use the existing costPreview.value instead of making a redundant API call
+    const finalEstimate = {
+      totalEstimatedHours: costPreview.value.totalEstimatedHours,
+      totalCostMYR: costPreview.value.totalCostMYR,
+      aiPowered: costPreview.value.aiPowered === true,
+      confidenceScore: costPreview.value.confidenceScore
     }
+    
+    // Store final quote data in localStorage using the existing cost preview
+    localStorage.setItem('protospec-cost-preview', JSON.stringify(finalEstimate))
+    localStorage.setItem('protospec-form-data', JSON.stringify(formData.value))
+    
+    // Navigate to results page with pre-computed data
+    window.location.href = '/results'
   } catch (error) {
     console.error('Error generating quote:', error)
-    alert('An error occurred while generating the quote. Please check your API key configuration.')
+    alert('An error occurred while generating the quote.')
   } finally {
     isGenerating.value = false
   }
