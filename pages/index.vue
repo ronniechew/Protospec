@@ -65,6 +65,18 @@
                 <p class="mt-3 text-caption text-secondary">
                   Be as specific as possible about features, integrations, and technical requirements.
                 </p>
+                <!-- Manual Estimate Cost Button -->
+                <div class="mt-4">
+                  <button
+                    type="button"
+                    @click="estimateCostManually"
+                    class="inline-flex items-center px-4 py-2 rounded-md text-button font-medium text-white bg-purple hover:bg-purple-dark focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] transition-all duration-200 min-h-[44px] shadow-border hover:shadow-md"
+                    :disabled="!formData.requirements.trim() || isEstimating"
+                  >
+                    <span v-if="!isEstimating">Estimate Cost</span>
+                    <span v-else>Estimating...</span>
+                  </button>
+                </div>
               </div>
               
               <!-- Real-time Cost Preview -->
@@ -138,7 +150,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useRequirementTemplates } from '~/composables/useRequirementTemplates'
 
 const { templates, applyTemplate } = useRequirementTemplates()
@@ -149,6 +161,7 @@ const formData = ref({
 })
 
 const isGenerating = ref(false)
+const isEstimating = ref(false) // New: tracks manual estimation state
 const costPreview = ref<{ 
   totalEstimatedHours: number; 
   totalCostMYR: number; 
@@ -163,6 +176,9 @@ const isStreaming = ref(false)
 const isThinking = ref(false) // New: shows "LLM is thinking..." immediately
 const streamingOutputRef = ref<HTMLPreElement | null>(null)
 const autoScrollEnabled = ref(true) // Controls auto-scroll behavior
+
+// AbortController for request cancellation
+let abortController: AbortController | null = null
 
 // Check if API key is available
 const hasApiKey = () => {
@@ -260,9 +276,18 @@ const streamEstimateCost = async (requirements: string) => {
   isStreaming.value = false
   autoScrollEnabled.value = true
   
+  // Cancel any previous request
+  if (abortController) {
+    abortController.abort()
+  }
+  
+  // Create new AbortController
+  abortController = new AbortController()
+  
   try {
     const response = await fetch('/api/estimate-quote-stream', {
       method: 'POST',
+      signal: abortController.signal,
       headers: {
         'Content-Type': 'application/json'
       },
@@ -414,22 +439,20 @@ const streamEstimateCost = async (requirements: string) => {
   } finally {
     isStreaming.value = false
     isThinking.value = false
+    isEstimating.value = false
     // Ensure we scroll to bottom one final time
     await nextTick()
     scrollToBottom()
   }
 }
 
-// Real-time cost estimation - LLM ONLY, NO FALLBACK
-const estimateCost = async (requirements: string) => {
-  // Use streaming version for real-time updates
-  await streamEstimateCost(requirements)
+// Manual cost estimation function
+const estimateCostManually = async () => {
+  if (!formData.value.requirements.trim()) return
+  
+  isEstimating.value = true
+  await streamEstimateCost(formData.value.requirements)
 }
-
-// Watch requirements for real-time updates
-watch(() => formData.value.requirements, async (newRequirements) => {
-  await estimateCost(newRequirements)
-}, { immediate: true })
 
 const generateQuote = async () => {
   if (!formData.value.clientName || !formData.value.requirements.trim()) {
@@ -437,9 +460,9 @@ const generateQuote = async () => {
     return
   }
   
-  // Ensure we have a valid cost preview before generating quote
+  // If no cost preview exists, trigger estimation first
   if (!costPreview.value) {
-    alert('Please wait for the cost estimate to complete before generating a quote.')
+    alert('Please click "Estimate Cost" to get a cost estimate before generating a quote.')
     return
   }
   
