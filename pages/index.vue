@@ -200,7 +200,7 @@ const hasValidQuoteData = computed(() => {
   }
   
   // Check if we have structured cost breakdown in localStorage
-  const costBreakdown = localStorage.getItem('protospec-cost-preview');
+  const costBreakdown = localStorage.getItem('protospec-cost-breakdown');
   if (costBreakdown && costBreakdown.trim()) {
     return true;
   }
@@ -539,31 +539,33 @@ const generateQuote = async () => {
     return
   }
   
-  // If no cost preview exists, trigger estimation first
-  if (!costPreview.value) {
-    alert('Please click "Estimate Cost" to get a cost estimate before generating a quote.')
+  // Check for any valid quote data from multiple sources
+  const hasCostPreview = !!costPreview.value;
+  const hasMarkdownQuote = !!localStorage.getItem('protospec-markdown-quote');
+  const hasCostBreakdown = !!localStorage.getItem('protospec-cost-breakdown');
+  const hasLlmReasoning = !!llmReasoningOutput.value && llmReasoningOutput.value.includes('# Professional Quotation');
+  
+  if (!hasCostPreview && !hasMarkdownQuote && !hasCostBreakdown && !hasLlmReasoning) {
+    alert('Please estimate cost first')
     return
   }
   
   isGenerating.value = true
   try {
-    // Use the existing costPreview.value instead of making a redundant API call
-    const finalEstimate = {
-      totalEstimatedHours: costPreview.value.totalEstimatedHours,
-      totalCostMYR: costPreview.value.totalCostMYR,
-      aiPowered: costPreview.value.aiPowered === true,
-      confidenceScore: costPreview.value.confidenceScore
+    // Save all relevant data to localStorage with correct key names
+    if (costPreview.value) {
+      localStorage.setItem('protospec-cost-breakdown', JSON.stringify(costPreview.value))
     }
     
-    // Store final quote data in localStorage using the existing cost preview
-    localStorage.setItem('protospec-cost-preview', JSON.stringify(finalEstimate))
     localStorage.setItem('protospec-form-data', JSON.stringify(formData.value))
-    localStorage.setItem('protospec-llm-reasoning', llmReasoningOutput.value)
     
-    // Ensure markdown quote is saved (fallback extraction)
-    const fallbackMarkdownQuote = extractMarkdownQuote(llmReasoningOutput.value)
-    if (fallbackMarkdownQuote) {
-      localStorage.setItem('protospec-markdown-quote', fallbackMarkdownQuote)
+    // Ensure markdown quote is saved
+    const currentMarkdownQuote = localStorage.getItem('protospec-markdown-quote');
+    if (!currentMarkdownQuote && llmReasoningOutput.value) {
+      const extractedQuote = extractMarkdownQuote(llmReasoningOutput.value);
+      if (extractedQuote) {
+        localStorage.setItem('protospec-markdown-quote', extractedQuote);
+      }
     }
     
     // Navigate to results page with pre-computed data
