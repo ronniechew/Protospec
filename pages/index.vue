@@ -486,7 +486,11 @@ const streamEstimateCost = async (requirements: string) => {
             // Extract and save detailed cost breakdown
             const detailedCostBreakdown = parseDetailedCostBreakdown(streamingOutput.value)
             if (detailedCostBreakdown) {
-              localStorage.setItem('protospec-cost-breakdown', JSON.stringify(detailedCostBreakdown))
+              console.log('Parsed detailed cost breakdown:', detailedCostBreakdown)
+              // Save only the costBreakdown object, not the wrapper
+              const costBreakdownToSave = detailedCostBreakdown.costBreakdown || detailedCostBreakdown;
+              console.log('Saving to localStorage as protospec-cost-breakdown:', costBreakdownToSave)
+              localStorage.setItem('protospec-cost-breakdown', JSON.stringify(costBreakdownToSave))
             }
           } else if (chunk.type === 'result') {
             // Final result
@@ -525,7 +529,9 @@ const streamEstimateCost = async (requirements: string) => {
           // Extract and save detailed cost breakdown
           const detailedCostBreakdown = parseDetailedCostBreakdown(streamingOutput.value)
           if (detailedCostBreakdown) {
-            localStorage.setItem('protospec-cost-breakdown', JSON.stringify(detailedCostBreakdown))
+            // Save only the costBreakdown object, not the wrapper
+            const costBreakdownToSave = detailedCostBreakdown.costBreakdown || detailedCostBreakdown;
+            localStorage.setItem('protospec-cost-breakdown', JSON.stringify(costBreakdownToSave))
           }
         }
       }
@@ -583,7 +589,9 @@ const streamEstimateCost = async (requirements: string) => {
         // Extract and save detailed cost breakdown
         const detailedCostBreakdown = parseDetailedCostBreakdown(streamingOutput.value)
         if (detailedCostBreakdown) {
-          localStorage.setItem('protospec-cost-breakdown', JSON.stringify(detailedCostBreakdown))
+          // Save only the costBreakdown object, not the wrapper
+          const costBreakdownToSave = detailedCostBreakdown.costBreakdown || detailedCostBreakdown;
+          localStorage.setItem('protospec-cost-breakdown', JSON.stringify(costBreakdownToSave))
         }
       }
     }
@@ -603,7 +611,9 @@ const streamEstimateCost = async (requirements: string) => {
     // Final check for detailed cost breakdown after streaming completes
     const finalDetailedCostBreakdown = parseDetailedCostBreakdown(streamingOutput.value)
     if (finalDetailedCostBreakdown) {
-      localStorage.setItem('protospec-cost-breakdown', JSON.stringify(finalDetailedCostBreakdown))
+      // Save only the costBreakdown object, not the wrapper
+      const costBreakdownToSave = finalDetailedCostBreakdown.costBreakdown || finalDetailedCostBreakdown;
+      localStorage.setItem('protospec-cost-breakdown', JSON.stringify(costBreakdownToSave))
     }
   }
 }
