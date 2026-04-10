@@ -1,3 +1,4 @@
+import { defineEventHandler, readRawBody, setHeader, createError } from 'h3'
 import { createWriteStream, promises as fsPromises } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -10,13 +11,24 @@ import PDFDocument from 'pdfkit'
 
 export default defineEventHandler(async (event) => {
   try {
-    const body = await readBody(event)
+    const body = await readRawBody(event)
     
-    if (!body?.quoteData) {
+    if (!body) {
+      throw new Error('Missing request body')
+    }
+    
+    let parsedBody
+    try {
+      parsedBody = JSON.parse(body.toString())
+    } catch (parseError) {
+      throw new Error('Invalid JSON in request body')
+    }
+    
+    if (!parsedBody?.quoteData) {
       throw new Error('Missing quoteData in request body')
     }
     
-    const { quoteData } = body
+    const { quoteData } = parsedBody
     
     // Create a temporary file path
     const filename = `${randomBytes(16).toString('hex')}.pdf`
@@ -91,7 +103,7 @@ export default defineEventHandler(async (event) => {
         .replace(/#/g, '') // Remove headers
         .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
         .replace(/\*(.*?)\*/g, '$1') // Remove italic
-        .replace(/```.*?```/gs, '') // Remove code blocks
+        .replace(/```[\s\S]*?```/g, '') // Remove code blocks
       
       doc.text(cleanQuote)
       doc.moveDown(2)
@@ -203,10 +215,8 @@ export default defineEventHandler(async (event) => {
     await fsPromises.unlink(filepath).catch(() => {})
     
     // Set response headers for file download
-    setResponseHeaders(event, {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${body.filename || 'Protospec_Quote.pdf'}"`
-    })
+    setHeader(event, 'Content-Type', 'application/pdf')
+    setHeader(event, 'Content-Disposition', `attachment; filename="${parsedBody.filename || 'Protospec_Quote.pdf'}"`)
     
     // Return the PDF buffer directly
     return pdfBuffer
