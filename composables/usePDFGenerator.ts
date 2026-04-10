@@ -3,11 +3,16 @@ import { useRuntimeConfig } from '#imports'
 export const usePDFGenerator = () => {
   const generatePDF = async (quoteData: any): Promise<Blob> => {
     // Dynamically import pdfmake to avoid SSR issues
-    const pdfMake = await import('pdfmake/build/pdfmake')
-    const pdfFonts = await import('pdfmake/build/vfs_fonts')
+    const pdfMakeModule = await import('pdfmake/build/pdfmake')
+    const vfsFontsModule = await import('pdfmake/build/vfs_fonts')
     
-    // Set up fonts
-    pdfMake.default.vfs = pdfFonts.default.pdfMake.vfs
+    // Set up fonts - the vfs_fonts module exports the vfs object directly
+    const pdfMake = pdfMakeModule.default || pdfMakeModule
+    const vfs = vfsFontsModule.vfs || vfsFontsModule.default?.vfs || vfsFontsModule
+    
+    if (vfs) {
+      pdfMake.vfs = vfs
+    }
     
     // Create document definition for pdfmake
     const docDefinition = {
@@ -207,7 +212,7 @@ export const usePDFGenerator = () => {
     // Generate the PDF blob
     return new Promise((resolve, reject) => {
       try {
-        const pdfDocGenerator = pdfMake.default.createPdf(docDefinition)
+        const pdfDocGenerator = pdfMake.createPdf(docDefinition)
         pdfDocGenerator.getBlob(resolve)
       } catch (error) {
         console.error('Error generating PDF:', error)
