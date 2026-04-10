@@ -9,6 +9,54 @@ import { pipeline } from 'node:stream/promises'
 // Let's use pdfkit which works well in Node.js environments
 import PDFDocument from 'pdfkit'
 
+// Helper function to format currency
+const formatCurrency = (amount: number): string => {
+  return amount.toLocaleString('en-MY', { 
+    style: 'currency', 
+    currency: 'MYR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  })
+}
+
+// Helper function to extract and replace cost values in markdown quote
+const updateQuoteWithCurrentCosts = (originalQuote: string, currentCosts: any): string => {
+  if (!originalQuote) return originalQuote
+  
+  let updatedQuote = originalQuote
+  
+  // Replace total cost in various formats that might appear in the quote
+  const totalCostPatterns = [
+    /RM\s*\d+(?:,\d+)*(?:\.\d+)?/gi, // RM 12,345 or RM12345
+    /\$\s*\d+(?:,\d+)*(?:\.\d+)?/gi,  // $ 12,345 or $12345  
+    /\d+(?:,\d+)*(?:\.\d+)?\s*RM/gi,  // 12,345 RM
+    /\d+(?:,\d+)*(?:\.\d+)?\s*\$/gi   // 12,345 $
+  ]
+  
+  // For now, we'll replace the main total cost reference
+  // In a more sophisticated implementation, we could parse the quote structure
+  // and replace individual line items
+  
+  // Look for patterns like "total of RM X,XXX" or "RM X,XXX in total"
+  const totalCostRegex = /(total.*?of|in total|total cost|grand total)[^\d]*RM\s*\d+(?:,\d+)*/gi
+  if (totalCostRegex.test(updatedQuote)) {
+    updatedQuote = updatedQuote.replace(
+      totalCostRegex, 
+      `$1 ${formatCurrency(currentCosts.totalCost)}`
+    )
+  }
+  
+  // Also look for standalone RM amounts that might be totals
+  const standaloneRMRegex = /RM\s*\d+(?:,\d+)*/g
+  const matches = updatedQuote.match(standaloneRMRegex)
+  if (matches && matches.length === 1) {
+    // If there's only one RM amount, it's likely the total
+    updatedQuote = updatedQuote.replace(standaloneRMRegex, formatCurrency(currentCosts.totalCost))
+  }
+  
+  return updatedQuote
+}
+
 export default defineEventHandler(async (event) => {
   try {
     const body = await readRawBody(event)
@@ -87,7 +135,7 @@ export default defineEventHandler(async (event) => {
     doc.text(quoteData.requirements || 'No requirements specified')
     doc.moveDown(2)
     
-    // Professional Quote (if available)
+    // Professional Quote (if available) - with updated costs
     if (quoteData.markdownQuote) {
       doc.fontSize(16)
         .fillColor('#7c3aed')
@@ -98,8 +146,11 @@ export default defineEventHandler(async (event) => {
         .font('Helvetica')
         .moveDown(0.5)
       
+      // Update the quote with current cost values
+      const updatedQuote = updateQuoteWithCurrentCosts(quoteData.markdownQuote, quoteData)
+      
       // Simple markdown to text conversion (basic)
-      let cleanQuote = quoteData.markdownQuote
+      let cleanQuote = updatedQuote
         .replace(/#/g, '') // Remove headers
         .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
         .replace(/\*(.*?)\*/g, '$1') // Remove italic
@@ -109,7 +160,7 @@ export default defineEventHandler(async (event) => {
       doc.moveDown(2)
     }
     
-    // Cost Breakdown
+    // Cost Breakdown - always use current user-adjusted values
     doc.fontSize(16)
       .fillColor('#7c3aed')
       .font('Helvetica-Bold')
@@ -142,7 +193,7 @@ export default defineEventHandler(async (event) => {
     
     let currentY = tableTop + rowHeight
     
-    // Data rows
+    // Data rows - using current user-adjusted values
     const roles = [
       { name: 'Technical Lead / Architect', data: quoteData.costBreakdown?.technicalLead },
       { name: 'Senior Developer', data: quoteData.costBreakdown?.seniorDev },

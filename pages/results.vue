@@ -41,11 +41,25 @@
 
             <!-- Quote Preview (Professional Markdown) -->
             <div class="mb-8" v-if="markdownQuote">
-              <h2 class="text-subheading-large text-black mb-4">Quote Preview</h2>
+              <div class="flex items-center justify-between mb-2">
+                <h2 class="text-subheading-large text-black">Quote Preview</h2>
+                <span 
+                  v-if="hasCostDiscrepancies" 
+                  class="inline-flex items-center px-2 py-1 rounded-pill text-caption font-medium bg-warning/10 text-warning"
+                >
+                  Adjusted from original
+                </span>
+              </div>
               <div 
                 class="prose prose-purple max-w-none p-6 bg-gray-50 rounded-md border border-purple/20"
                 v-html="parsedMarkdown"
               ></div>
+              <p 
+                v-if="hasCostDiscrepancies" 
+                class="mt-2 text-caption text-secondary"
+              >
+                Note: Cost values have been adjusted from the original AI-generated quote. PDF exports will reflect your current adjustments.
+              </p>
             </div>
 
             <!-- Interactive Rate Card -->
@@ -308,11 +322,50 @@ const uiuxCost = computed(() => uiuxRate.value * uiuxDays.value)
 const qaCost = computed(() => qaRate.value * qaDays.value)
 const totalCost = computed(() => technicalLeadCost.value + seniorDevCost.value + uiuxCost.value + qaCost.value)
 
+// Check if current values differ from original LLM quote
+const hasCostDiscrepancies = computed(() => {
+  // Try to parse original LLM cost breakdown from localStorage
+  const storedCostBreakdown = localStorage.getItem('protospec-cost-breakdown')
+  if (!storedCostBreakdown) return false
+  
+  try {
+    const originalBreakdown = JSON.parse(storedCostBreakdown)
+    
+    // Check if this is the detailed format with role breakdowns
+    if (originalBreakdown.technicalLeadArchitect && 
+        originalBreakdown.seniorDeveloper && 
+        originalBreakdown.uiuxDesigner && 
+        originalBreakdown.qaTesting) {
+      
+      const originalTotal = (
+        originalBreakdown.technicalLeadArchitect.dailyRate * originalBreakdown.technicalLeadArchitect.days +
+        originalBreakdown.seniorDeveloper.dailyRate * originalBreakdown.seniorDeveloper.days +
+        originalBreakdown.uiuxDesigner.dailyRate * originalBreakdown.uiuxDesigner.days +
+        originalBreakdown.qaTesting.dailyRate * originalBreakdown.qaTesting.days
+      )
+      
+      // Compare with current total (allow small rounding differences)
+      return Math.abs(originalTotal - totalCost.value) > 1
+    }
+    
+    // Check if this is the summary format
+    if (originalBreakdown.totalCostMYR) {
+      return Math.abs(originalBreakdown.totalCostMYR - totalCost.value) > 1
+    }
+    
+  } catch (error) {
+    console.warn('Failed to parse original cost breakdown:', error)
+  }
+  
+  return false
+})
+
 // PDF export functionality
 const { downloadPDF: generateAndDownloadPDF } = usePDFGenerator()
 
 const exportAsPDF = () => {
   console.log('Export as PDF button clicked!')
+  // Always use current rate card values for PDF export (user-adjusted values)
   const quoteData = {
     clientName: clientName.value,
     quoteDate: quoteDate.value,
