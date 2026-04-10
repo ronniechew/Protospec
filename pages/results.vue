@@ -312,6 +312,7 @@ const totalCost = computed(() => technicalLeadCost.value + seniorDevCost.value +
 const { downloadPDF: generateAndDownloadPDF } = usePDFGenerator()
 
 const exportAsPDF = () => {
+  console.log('Export as PDF button clicked!')
   const quoteData = {
     clientName: clientName.value,
     quoteDate: quoteDate.value,
