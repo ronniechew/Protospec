@@ -1,4 +1,4 @@
-import { createWriteStream } from 'node:fs'
+import { createWriteStream, promises as fsPromises } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { randomBytes } from 'node:crypto'
@@ -196,14 +196,20 @@ export default defineEventHandler(async (event) => {
       writeStream.on('close', resolve)
     })
     
+    // Read the file and return as buffer
+    const pdfBuffer = await fsPromises.readFile(filepath)
+    
+    // Clean up temporary file
+    await fsPromises.unlink(filepath).catch(() => {})
+    
     // Set response headers for file download
     setResponseHeaders(event, {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${body.filename || 'Protospec_Quote.pdf'}"`
     })
     
-    // Return the file as response
-    return sendFile(event, filepath)
+    // Return the PDF buffer directly
+    return pdfBuffer
     
   } catch (error) {
     console.error('Error generating PDF:', error)
