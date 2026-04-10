@@ -42,14 +42,16 @@ export const usePDFGenerator = () => {
         console.warn('No vfs found, PDF generation may not work properly')
       }
       
-      // Create document definition for pdfmake
+      // Create document definition for pdfmake - using default fonts only
       const docDefinition = {
         pageSize: 'A4',
         pageMargins: [40, 60, 40, 60],
         header: (currentPage: number, pageCount: number) => {
           return {
             text: `Protospec Quotation - Page ${currentPage} of ${pageCount}`,
-            style: 'header',
+            fontSize: 10,
+            color: '#6b7280',
+            alignment: 'right',
             margin: [40, 20, 40, 10]
           }
         },
@@ -57,14 +59,19 @@ export const usePDFGenerator = () => {
           // Title
           {
             text: 'PROFESSIONAL QUOTATION',
-            style: 'title',
+            fontSize: 24,
+            bold: true,
+            color: '#7c3aed',
+            alignment: 'center',
             margin: [0, 0, 0, 20]
           },
           
           // Client Information
           {
             text: 'CLIENT INFORMATION',
-            style: 'sectionHeader',
+            fontSize: 16,
+            bold: true,
+            color: '#7c3aed',
             margin: [0, 0, 0, 10]
           },
           {
@@ -72,8 +79,8 @@ export const usePDFGenerator = () => {
             table: {
               widths: ['auto', '*'],
               body: [
-                [{ text: 'Client Name:', style: 'label' }, { text: quoteData.clientName || 'Not specified', style: 'value' }],
-                [{ text: 'Quote Date:', style: 'label' }, { text: quoteData.quoteDate || new Date().toISOString().split('T')[0], style: 'value' }]
+                [{ text: 'Client Name:', bold: true, fontSize: 12, color: '#374151' }, { text: quoteData.clientName || 'Not specified', fontSize: 12, color: '#1f2937' }],
+                [{ text: 'Quote Date:', bold: true, fontSize: 12, color: '#374151' }, { text: quoteData.quoteDate || new Date().toISOString().split('T')[0], fontSize: 12, color: '#1f2937' }]
               ]
             },
             margin: [0, 0, 0, 20]
@@ -82,12 +89,16 @@ export const usePDFGenerator = () => {
           // Project Requirements
           {
             text: 'PROJECT REQUIREMENTS',
-            style: 'sectionHeader',
+            fontSize: 16,
+            bold: true,
+            color: '#7c3aed',
             margin: [0, 0, 0, 10]
           },
           {
             text: quoteData.requirements || 'No requirements specified',
-            style: 'requirements',
+            fontSize: 11,
+            color: '#374151',
+            lineHeight: 1.4,
             margin: [0, 0, 0, 20]
           },
           
@@ -95,12 +106,16 @@ export const usePDFGenerator = () => {
           ...(quoteData.markdownQuote ? [
             {
               text: 'PROFESSIONAL QUOTATION DETAILS',
-              style: 'sectionHeader',
+              fontSize: 16,
+              bold: true,
+              color: '#7c3aed',
               margin: [0, 0, 0, 10]
             },
             {
               text: quoteData.markdownQuote,
-              style: 'markdownContent',
+              fontSize: 11,
+              color: '#374151',
+              lineHeight: 1.4,
               margin: [0, 0, 0, 20]
             }
           ] : []),
@@ -108,7 +123,9 @@ export const usePDFGenerator = () => {
           // Cost Breakdown
           {
             text: 'COST BREAKDOWN',
-            style: 'sectionHeader',
+            fontSize: 16,
+            bold: true,
+            color: '#7c3aed',
             margin: [0, 0, 0, 10]
           },
           {
@@ -117,10 +134,10 @@ export const usePDFGenerator = () => {
               widths: ['*', 'auto', 'auto', 'auto'],
               body: [
                 [
-                  { text: 'Role', style: 'tableHeader' },
-                  { text: 'Daily Rate (RM)', style: 'tableHeader', alignment: 'right' },
-                  { text: 'Days', style: 'tableHeader', alignment: 'right' },
-                  { text: 'Total (RM)', style: 'tableHeader', alignment: 'right' }
+                  { text: 'Role', bold: true, fontSize: 11, color: '#7c3aed', fillColor: '#f9f5ff' },
+                  { text: 'Daily Rate (RM)', bold: true, fontSize: 11, color: '#7c3aed', fillColor: '#f9f5ff', alignment: 'right' },
+                  { text: 'Days', bold: true, fontSize: 11, color: '#7c3aed', fillColor: '#f9f5ff', alignment: 'right' },
+                  { text: 'Total (RM)', bold: true, fontSize: 11, color: '#7c3aed', fillColor: '#f9f5ff', alignment: 'right' }
                 ],
                 [
                   'Technical Lead / Architect',
@@ -177,64 +194,14 @@ export const usePDFGenerator = () => {
           // Footer note
           {
             text: 'This quotation is valid for 30 days from the date of issue.',
-            style: 'footerNote',
-            margin: [0, 20, 0, 0]
-          }
-        ],
-        styles: {
-          title: {
-            fontSize: 24,
-            bold: true,
-            color: '#7c3aed',
-            alignment: 'center',
-            margin: [0, 0, 0, 20]
-          },
-          sectionHeader: {
-            fontSize: 16,
-            bold: true,
-            color: '#7c3aed',
-            margin: [0, 10, 0, 5]
-          },
-          label: {
-            fontSize: 12,
-            bold: true,
-            color: '#374151'
-          },
-          value: {
-            fontSize: 12,
-            color: '#1f2937'
-          },
-          requirements: {
-            fontSize: 11,
-            color: '#374151',
-            lineHeight: 1.4
-          },
-          markdownContent: {
-            fontSize: 11,
-            color: '#374151',
-            lineHeight: 1.4
-          },
-          tableHeader: {
-            fontSize: 11,
-            bold: true,
-            color: '#7c3aed',
-            fillColor: '#f9f5ff'
-          },
-          footerNote: {
             fontSize: 10,
             italic: true,
             color: '#6b7280',
-            alignment: 'center'
-          },
-          header: {
-            fontSize: 10,
-            color: '#6b7280',
-            alignment: 'right'
+            alignment: 'center',
+            margin: [0, 20, 0, 0]
           }
-        },
-        defaultStyle: {
-          font: 'Roboto'
-        }
+        ]
+        // Removed defaultStyle to use pdfmake defaults
       }
       
       console.log('Creating PDF document...')
