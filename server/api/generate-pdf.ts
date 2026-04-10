@@ -44,15 +44,18 @@ export default defineEventHandler(async (event) => {
     // Title
     doc.fontSize(24)
       .fillColor('#7c3aed')
+      .font('Helvetica-Bold')
       .text('PROFESSIONAL QUOTATION', { align: 'center' })
       .moveDown(2)
     
     // Client Information
     doc.fontSize(16)
       .fillColor('#7c3aed')
+      .font('Helvetica-Bold')
       .text('CLIENT INFORMATION')
       .fontSize(12)
       .fillColor('black')
+      .font('Helvetica')
       .moveDown(0.5)
     
     doc.text(`Client Name: ${quoteData.clientName || 'Not specified'}`)
@@ -62,9 +65,11 @@ export default defineEventHandler(async (event) => {
     // Project Requirements
     doc.fontSize(16)
       .fillColor('#7c3aed')
+      .font('Helvetica-Bold')
       .text('PROJECT REQUIREMENTS')
       .fontSize(12)
       .fillColor('black')
+      .font('Helvetica')
       .moveDown(0.5)
     
     doc.text(quoteData.requirements || 'No requirements specified')
@@ -74,9 +79,11 @@ export default defineEventHandler(async (event) => {
     if (quoteData.markdownQuote) {
       doc.fontSize(16)
         .fillColor('#7c3aed')
+        .font('Helvetica-Bold')
         .text('PROFESSIONAL QUOTATION DETAILS')
         .fontSize(12)
         .fillColor('black')
+        .font('Helvetica')
         .moveDown(0.5)
       
       // Simple markdown to text conversion (basic)
@@ -93,9 +100,11 @@ export default defineEventHandler(async (event) => {
     // Cost Breakdown
     doc.fontSize(16)
       .fillColor('#7c3aed')
+      .font('Helvetica-Bold')
       .text('COST BREAKDOWN')
       .fontSize(12)
       .fillColor('black')
+      .font('Helvetica')
       .moveDown(0.5)
     
     // Create table manually since PDFKit doesn't have built-in tables
@@ -109,12 +118,15 @@ export default defineEventHandler(async (event) => {
     doc.fillColor('#f9f5ff')
     doc.rect(startX, tableTop, tableWidth, rowHeight).fill()
     doc.fillColor('#7c3aed')
-    doc.fontSize(11).bold()
+    doc.font('Helvetica-Bold')
+    doc.fontSize(11)
     doc.text('Role', startX + 5, tableTop + 5)
-    doc.text('Daily Rate (RM)', startX + columnWidths[0] + 5, tableTop + 5)
-    doc.text('Days', startX + columnWidths[0] + columnWidths[1] + 5, tableTop + 5)
-    doc.text('Total (RM)', startX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, tableTop + 5)
-    doc.fontSize(12).fillColor('black').bold(false)
+    doc.text('Daily Rate (RM)', startX + columnWidths[0] + 5, tableTop + 5, { align: 'right' })
+    doc.text('Days', startX + columnWidths[0] + columnWidths[1] + 5, tableTop + 5, { align: 'right' })
+    doc.text('Total (RM)', startX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, tableTop + 5, { align: 'right' })
+    doc.font('Helvetica')
+    doc.fontSize(12)
+    doc.fillColor('black')
     
     let currentY = tableTop + rowHeight
     
@@ -153,7 +165,8 @@ export default defineEventHandler(async (event) => {
     doc.fillColor('#f3f4f6')
     doc.rect(startX, currentY, tableWidth, rowHeight).fill()
     doc.fillColor('black')
-    doc.fontSize(14).bold()
+    doc.font('Helvetica-Bold')
+    doc.fontSize(14)
     doc.text('TOTAL', startX + 5, currentY + 5)
     doc.text(
       (quoteData.totalCost || 0).toLocaleString(), 
@@ -161,14 +174,15 @@ export default defineEventHandler(async (event) => {
       currentY + 5,
       { align: 'right' }
     )
-    doc.fontSize(12).bold(false)
+    doc.font('Helvetica')
+    doc.fontSize(12)
     
     currentY += rowHeight + 20
     
     // Footer note
     doc.fontSize(10)
       .fillColor('#6b7280')
-      .italic()
+      .font('Helvetica-Oblique')
       .text('This quotation is valid for 30 days from the date of issue.', { align: 'center' })
     
     // Add header to first page
