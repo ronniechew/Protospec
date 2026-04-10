@@ -1,0 +1,12 @@
+      // Check if this is the new detailed format
+      if (costBreakdown.technicalLeadArchitect && costBreakdown.seniorDeveloper && costBreakdown.uiuxDesigner && costBreakdown.qaTesting) {
+        // Initialize rate card with actual LLM values (detailed format)
+        technicalLeadRate.value = costBreakdown.technicalLeadArchitect.dailyRate || 3000
+        technicalLeadDays.value = costBreakdown.technicalLeadArchitect.days || 10
+        seniorDevRate.value = costBreakdown.seniorDeveloper.dailyRate || 2000
+        seniorDevDays.value = costBreakdown.seniorDeveloper.days || 20
+        uiuxRate.value = costBreakdown.uiuxDesigner.dailyRate || 1500
+        uiuxDays.value = costBreakdown.uiuxDesigner.days || 15
+        qaRate.value = costBreakdown.qaTesting.dailyRate || 1000
+        qaDays.value = costBreakdown.qaTesting.days || 12
+      } else if (costBreakdown.totalCostMYR) {
