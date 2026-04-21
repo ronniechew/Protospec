@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-white">
+  <div class="min-h-screen bg-bg-primary">
     <header class="bg-white shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08)]">
       <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
         <div>
@@ -7,6 +7,9 @@
           <p class="mt-2 text-body-large text-secondary">Generate accurate software development quotations for Malaysian SMEs</p>
         </div>
         <nav class="hidden md:block">
+          <a href="/quotes" class="text-link hover:text-link/80 font-medium transition-colors text-button mr-4">
+            My Quotes
+          </a>
           <a href="/settings" class="text-link hover:text-link/80 font-medium transition-colors text-button">
             Settings
           </a>

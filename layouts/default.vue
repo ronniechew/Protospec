@@ -2,18 +2,18 @@
   <div class="min-h-screen bg-white">
     <!-- Global Header Navigation -->
     <header 
-      class="sticky top-0 z-50 bg-white shadow-border"
+      class="sticky top-0 z-50 bg-bg-primary shadow-border"
       :class="{ 'shadow-elevation': isScrolled }"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <!-- Logo/Brand -->
           <div class="flex-shrink-0 flex items-center">
-            <span class="text-black text-body-medium font-semibold">Protospec</span>
+            <span class="text-text-primary text-body-medium font-semibold">Protospec</span>
           </div>
           
           <!-- Navigation Links -->
-          <nav class="hidden md:flex space-x-8">
+          <nav class="hidden md:flex space-x-8 items-center">
             <NuxtLink 
               to="/" 
               class="text-tertiary text-button hover:text-primary transition-colors duration-150"
@@ -29,12 +29,20 @@
               Results
             </NuxtLink>
             <NuxtLink 
+              to="/quotes" 
+              class="text-tertiary text-button hover:text-primary transition-colors duration-150"
+              active-class="text-purple font-semibold"
+            >
+              My Quotes
+            </NuxtLink>
+            <NuxtLink 
               to="/settings" 
               class="text-tertiary text-button hover:text-primary transition-colors duration-150"
               active-class="text-purple font-semibold"
             >
               Settings
             </NuxtLink>
+            <ThemeToggle />
           </nav>
           
           <!-- Primary CTA removed as per UX requirements -->

@@ -9,7 +9,23 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Vercel-inspired color palette
+        // Define CSS variable-based color system
+        // Light theme defaults
+        'bg-primary': 'var(--bg-primary, #ffffff)',
+        'bg-secondary': 'var(--bg-secondary, #f8f5ff)',
+        'text-primary': 'var(--text-primary, #171717)',
+        'text-secondary': 'var(--text-secondary, #4d4d4d)',
+        'text-tertiary': 'var(--text-tertiary, #666666)',
+        'border-color': 'var(--border-color, rgba(0,0,0,0.08))',
+        'primary-color': 'var(--primary-color, #7C3AED)',
+        'primary-color-dark': 'var(--primary-color-dark, #6a32c9)',
+        'primary-color-light': 'var(--primary-color-light, #f8f5ff)',
+        'success': 'var(--success, #0a72ef)',
+        'warning': 'var(--warning, #de1d8d)',
+        'error': 'var(--error, #ff5b4f)',
+        'link': 'var(--link, #0072f5)',
+        
+        // Fallback colors for when CSS vars aren't set
         black: '#171717',
         white: '#ffffff',
         purple: {
@@ -18,22 +34,22 @@ module.exports = {
           light: '#f8f5ff',
           text: '#5d2ab5'
         },
-        primary: '#171717', // Vercel primary text
-        secondary: '#4d4d4d', // Vercel secondary text
-        tertiary: '#666666', // Vercel tertiary text
-        placeholder: '#808080', // Vercel placeholder text
-        background: '#ffffff',
+        primary: 'var(--text-primary, #171717)', // Vercel primary text
+        secondary: 'var(--text-secondary, #4d4d4d)', // Vercel secondary text
+        tertiary: 'var(--text-tertiary, #666666)', // Vercel tertiary text
+        placeholder: 'var(--text-tertiary, #666666)', // Vercel placeholder text
+        background: 'var(--bg-primary, #ffffff)',
         text: {
-          body: '#171717',
-          heading: '#171717',
-          secondary: '#4d4d4d',
-          tertiary: '#666666',
-          placeholder: '#808080'
+          body: 'var(--text-primary, #171717)',
+          heading: 'var(--text-primary, #171717)',
+          secondary: 'var(--text-secondary, #4d4d4d)',
+          tertiary: 'var(--text-tertiary, #666666)',
+          placeholder: 'var(--text-tertiary, #666666)'
         },
-        success: '#0a72ef',
-        warning: '#de1d8d',
-        error: '#ff5b4f',
-        link: '#0072f5',
+        success: 'var(--success, #0a72ef)',
+        warning: 'var(--warning, #de1d8d)',
+        error: 'var(--error, #ff5b4f)',
+        link: 'var(--link, #0072f5)',
         focus: 'hsla(212, 100%, 48%, 1)',
         ring: 'rgba(147, 197, 253, 0.5)'
       },

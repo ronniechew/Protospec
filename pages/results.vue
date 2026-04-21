@@ -1,6 +1,11 @@
 <template>
-  <div class="min-h-screen bg-white">
+  <div class="min-h-screen bg-bg-primary">
     <main>
+      <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div class="mb-6">
+          <h1 class="text-[40px] font-semibold text-text-primary leading-[1.20] tracking-[-2.4px]">Quote Review</h1>
+          <p class="mt-2 text-text-secondary text-body">Review and finalize your project quotation</p>
+        </div>
       <div class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
         <div class="px-4 py-6 sm:px-0">
           <div class="bg-white rounded-md p-6 md:p-8 relative shadow-card">
@@ -254,6 +259,7 @@
           </div>
         </div>
       </div>
+          </div>
     </main>
   </div>
 </template>
@@ -383,8 +389,76 @@ const exportAsPDF = () => {
   generateAndDownloadPDF(quoteData, `${clientName.value.replace(/[^a-z0-9]/gi, '_')}_quote.pdf`)
 }
 
+// Generate a unique ID for the quote
+const generateQuoteId = () => {
+  return `quote_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+}
+
 const saveQuote = () => {
-  alert('Quote saved successfully!')
+  try {
+    // Prepare quote data
+    const quoteData = {
+      id: generateQuoteId(),
+      clientName: clientName.value,
+      requirements: requirements.value,
+      totalCost: totalCost.value,
+      createdAt: new Date().toISOString(),
+      projectDuration: calculateProjectDuration(),
+      markdownQuote: markdownQuote.value,
+      costBreakdown: {
+        technicalLead: { 
+          rate: technicalLeadRate.value, 
+          days: technicalLeadDays.value, 
+          cost: technicalLeadCost.value 
+        },
+        seniorDev: { 
+          rate: seniorDevRate.value, 
+          days: seniorDevDays.value, 
+          cost: seniorDevCost.value 
+        },
+        uiux: { 
+          rate: uiuxRate.value, 
+          days: uiuxDays.value, 
+          cost: uiuxCost.value 
+        },
+        qa: { 
+          rate: qaRate.value, 
+          days: qaDays.value, 
+          cost: qaCost.value 
+        }
+      }
+    }
+    
+    // Load existing quotes or initialize empty array
+    const savedQuotes = localStorage.getItem('protospec-saved-quotes')
+    let quotes = savedQuotes ? JSON.parse(savedQuotes) : []
+    
+    // Add new quote to the beginning of the array
+    quotes.unshift(quoteData)
+    
+    // Save back to localStorage
+    localStorage.setItem('protospec-saved-quotes', JSON.stringify(quotes))
+    
+    alert('Quote saved successfully!')
+    
+    // Optionally redirect to the quotes list page
+    // window.location.href = '/quotes'
+  } catch (error) {
+    console.error('Failed to save quote:', error)
+    alert('Failed to save quote. Please try again.')
+  }
+}
+
+// Calculate estimated project duration based on total days
+const calculateProjectDuration = () => {
+  const totalDays = technicalLeadDays.value + seniorDevDays.value + uiuxDays.value + qaDays.value
+  
+  if (totalDays <= 5) return 'Less than 1 week'
+  if (totalDays <= 10) return '1-2 weeks'
+  if (totalDays <= 20) return '2-4 weeks'
+  if (totalDays <= 40) return '1-2 months'
+  if (totalDays <= 80) return '2-4 months'
+  return '4+ months'
 }
 
 // Load data from localStorage

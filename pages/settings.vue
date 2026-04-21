@@ -1,9 +1,19 @@
 <template>
-  <div class="min-h-screen bg-background">
+  <div class="min-h-screen bg-bg-primary">
     <header class="bg-white shadow-[border]">
-      <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <h1 class="text-[40px] font-semibold text-primary leading-[1.20] tracking-[-2.4px]">Settings</h1>
-        <p class="mt-2 text-secondary text-body">Configure your Protospec preferences</p>
+      <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
+        <div>
+          <h1 class="text-[40px] font-semibold text-text-primary leading-[1.20] tracking-[-2.4px]">Settings</h1>
+          <p class="mt-2 text-text-secondary text-body">Configure your Protospec preferences</p>
+        </div>
+        <nav>
+          <a href="/quotes" class="text-link hover:text-link/80 font-medium transition-colors text-button mr-4">
+            My Quotes
+          </a>
+          <a href="/" class="text-link hover:text-link/80 font-medium transition-colors text-button">
+            New Quote
+          </a>
+        </nav>
       </div>
     </header>
     <main>

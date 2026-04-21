@@ -1,140 +1,195 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Define CSS variables for theming */
+:root {
+  /* Light Theme Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f5ff;
+  --text-primary: #171717;
+  --text-secondary: #4d4d4d;
+  --text-tertiary: #666666;
+  --border-color: rgba(0,0,0,0.08);
+  --primary-color: #7C3AED;
+  --primary-color-dark: #6a32c9;
+  --primary-color-light: #f8f5ff;
+  --success: #0a72ef;
+  --warning: #de1d8d;
+  --error: #ff5b4f;
+  --link: #0072f5;
+}
 
-/* Global font size enforcement - never below 16px */
+/* Dark Theme Colors */
+[data-theme="dark"] {
+  --bg-primary: #171717;
+  --bg-secondary: #222222;
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --text-tertiary: #aaaaaa;
+  --border-color: rgba(255,255,255,0.1);
+  --primary-color: #8B5CF6;
+  --primary-color-dark: #7C3AED;
+  --primary-color-light: #312E47;
+  --success: #60a5fa;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --link: #93c5fd;
+}
+
+/* System Theme Preference (respects OS setting) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-primary: #171717;
+    --bg-secondary: #222222;
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --text-tertiary: #aaaaaa;
+    --border-color: rgba(255,255,255,0.1);
+    --primary-color: #8B5CF6;
+    --primary-color-dark: #7C3AED;
+    --primary-color-light: #312E47;
+    --success: #60a5fa;
+    --warning: #fbbf24;
+    --error: #f87171;
+    --link: #93c5fd;
+  }
+}
+
+/* Base theming for all elements */
 body {
-  font-size: 16px;
-  line-height: 1.625;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-size: clamp(16px, 4vw, 40px);
+/* Common component styles using CSS variables */
+.bg-white {
+  background-color: var(--bg-primary);
 }
 
-/* Mobile optimizations */
-@media (max-width: 640px) {
-  /* Ensure proper viewport scaling */
-  html {
-    font-size: 16px;
-    -webkit-text-size-adjust: 100%;
-    -ms-text-size-adjust: 100%;
-  }
-  
-  /* Optimize form elements for touch */
-  input[type="text"],
-  input[type="email"],
-  input[type="tel"],
-  textarea,
-  select {
-    font-size: 16px !important; /* Prevents iOS zoom on focus */
-    padding: 12px;
-    min-height: 44px; /* Minimum touch target size */
-  }
-  
-  textarea {
-    min-height: 120px;
-  }
-  
-  /* Template buttons - stack vertically on mobile */
-  .grid.grid-cols-1.sm\:grid-cols-2.md\:grid-cols-3.lg\:grid-cols-5 {
-    grid-template-columns: 1fr !important;
-  }
-  
-  /* Optimize button sizes for touch */
-  button {
-    min-height: 44px;
-    min-width: 44px;
-    padding: 12px 16px;
-    font-size: 16px;
-  }
-  
-  /* Ensure proper spacing on small screens */
-  .py-8 {
-    padding-top: 32px !important;
-    padding-bottom: 32px !important;
-  }
-  
-  .mb-6 {
-    margin-bottom: 24px !important;
-  }
-  
-  .p-6 {
-    padding: 24px !important;
-  }
-  
-  .px-4 {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
-  }
-  
-  /* Prevent horizontal scrolling */
-  body {
-    overflow-x: hidden;
-  }
-  
-  .max-w-7xl {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
-  }
+.text-black {
+  color: var(--text-primary);
 }
 
-/* Improve touch targets - all interactive elements */
-button,
-input[type="button"],
-input[type="submit"],
-input[type="reset"],
-[role="button"] {
-  min-height: 44px;
-  min-width: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.text-secondary {
+  color: var(--text-secondary);
 }
 
-/* Smooth scrolling for better mobile experience */
-html {
-  scroll-behavior: smooth;
+.border-gray-200 {
+  border-color: var(--border-color);
 }
 
-/* Hide outline on focus for touch devices, but keep for keyboard navigation */
-@media (hover: none) and (pointer: coarse) {
-  *:focus {
-    outline: none;
-  }
+.bg-purple-light {
+  background-color: var(--primary-color-light);
 }
 
-/* Ensure PDF download works properly on mobile */
-@media (max-width: 640px) {
-  .flex.flex-col.sm\:flex-row {
-    flex-direction: column !important;
-  }
-  
-  .sm\:space-x-4 {
-    space-x: 0 !important;
-  }
-  
-  .pdf-download-btn {
-    width: 100% !important;
-    margin-top: 16px !important;
-  }
+.text-purple {
+  color: var(--primary-color);
 }
 
-/* Responsive design for all screens */
-@screen sm {
-  body {
-    font-size: 16px;
-  }
+.hover\:bg-purple-dark:hover {
+  background-color: var(--primary-color-dark);
 }
 
-@screen md {
-  body {
-    font-size: 16px;
-  }
+.focus\:outline-focus:focus {
+  outline: var(--focus, 2px solid hsla(212, 100%, 48%, 1));
 }
 
-@screen lg {
-  body {
-    font-size: 16px;
-  }
+.shadow-border {
+  box-shadow: 0px 0px 0px 1px var(--border-color);
+}
+
+/* Specific component styling */
+.theme-toggle {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.theme-toggle-option {
+  color: var(--text-secondary);
+}
+
+.theme-toggle-option.active {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* Table styling */
+.bg-purple\/10 {
+  background-color: color-mix(in srgb, var(--primary-color) 10%, transparent);
+}
+
+.border-purple\/20 {
+  border-color: color-mix(in srgb, var(--primary-color) 20%, transparent);
+}
+
+.text-purple-text {
+  color: var(--primary-color);
+}
+
+/* Card styling */
+.shadow-card {
+  box-shadow: 
+    var(--border-color) 0px 0px 0px 1px, 
+    rgba(0,0,0,0.04) 0px 2px 2px, 
+    rgba(0,0,0,0.04) 0px 8px 8px -8px, 
+    var(--bg-primary) 0px 0px 0px 1px;
+}
+
+/* Input styling */
+.focus\:shadow-\[0px_0px_0px_1px_rgba\(0\,0\,0\,0\.08\)\,0px_0px_0px_4px_rgba\(147\,197\,253\,0\.5\) {
+  box-shadow: 0px 0px 0px 1px var(--border-color), 0px 0px 0px 4px var(--ring, rgba(147, 197, 253, 0.5));
+}
+
+/* Link styling */
+.text-link {
+  color: var(--link);
+}
+
+.hover\:text-link:hover {
+  color: color-mix(in srgb, var(--link) 80%, black);
+}
+
+/* Button styling */
+.bg-purple {
+  background-color: var(--primary-color);
+}
+
+.hover\:bg-purple-dark:hover {
+  background-color: var(--primary-color-dark);
+}
+
+.border-purple {
+  border-color: var(--primary-color);
+}
+
+.hover\:bg-purple\/5:hover {
+  background-color: color-mix(in srgb, var(--primary-color) 5%, transparent);
+}
+
+/* Status colors */
+.text-success {
+  color: var(--success);
+}
+
+.bg-success\/10 {
+  background-color: color-mix(in srgb, var(--success) 10%, transparent);
+}
+
+.text-warning {
+  color: var(--warning);
+}
+
+.bg-warning\/10 {
+  background-color: color-mix(in srgb, var(--warning) 10%, transparent);
+}
+
+.text-error {
+  color: var(--error);
+}
+
+.bg-error\/10 {
+  background-color: color-mix(in srgb, var(--error) 10%, transparent);
+}
+
+/* Focus rings */
+.focus\:shadow-\[0px_0px_0px_1px_rgba\(0\,0\,0\,0\.08\)\,0px_0px_0px_4px_rgba\(147\,197\,253\,0\.5\) {
+  box-shadow: 0px 0px 0px 1px var(--border-color), 0px 0px 0px 4px var(--ring, rgba(147, 197, 253, 0.5));
 }
