@@ -8,26 +8,26 @@
         </div>
       <div class="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8">
         <div class="px-4 py-6 sm:px-0">
-          <div class="bg-white rounded-md p-6 md:p-8 relative shadow-card">
+          <div class="bg-bg-primary rounded-md p-6 md:p-8 relative shadow-card">
             <!-- Client Information -->
             <div class="mb-8">
               <h2 class="text-subheading-large text-black mb-4">Client Information</h2>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label class="block text-body-medium text-black mb-2">Client Name</label>
+                  <label class="block text-body-medium text-text-primary mb-2">Client Name</label>
                   <input
                     v-model="clientName"
                     type="text"
-                    class="w-full px-4 py-2 rounded-md shadow-border focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] text-body-small"
+                    class="w-full px-4 py-2 rounded-md shadow-border focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_var(--border-color),0px_0px_0px_4px_var(--ring)] text-body-small"
                     placeholder="Enter client name"
                   />
                 </div>
                 <div>
-                  <label class="block text-body-medium text-black mb-2">Quote Date</label>
+                  <label class="block text-body-medium text-text-primary mb-2">Quote Date</label>
                   <input
                     v-model="quoteDate"
                     type="date"
-                    class="w-full px-4 py-2 rounded-md shadow-border focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] text-body-small"
+                    class="w-full px-4 py-2 rounded-md shadow-border focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_var(--border-color),0px_0px_0px_4px_var(--ring)] text-body-small"
                   />
                 </div>
               </div>
@@ -35,11 +35,11 @@
 
             <!-- Project Requirements -->
             <div class="mb-8">
-              <h2 class="text-subheading-large text-black mb-4">Project Requirements</h2>
+              <h2 class="text-subheading-large text-text-primary mb-4">Project Requirements</h2>
               <textarea
                 v-model="requirements"
                 rows="6"
-                class="w-full px-4 py-2 rounded-md shadow-border focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] text-mono-body leading-relaxed"
+                class="w-full px-4 py-2 rounded-md shadow-border focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_var(--border-color),0px_0px_0px_4px_var(--ring)] text-mono-body leading-relaxed"
                 placeholder="Project requirements summary..."
               ></textarea>
             </div>
@@ -56,7 +56,7 @@
                 </span>
               </div>
               <div 
-                class="prose prose-purple max-w-none p-6 bg-gray-50 rounded-md border border-purple/20"
+                class="prose prose-purple max-w-none p-6 bg-bg-secondary rounded-md border border-purple/20"
                 v-html="parsedMarkdown"
               ></div>
               <p 
@@ -245,13 +245,13 @@
             <div class="flex flex-col sm:flex-row gap-4 justify-end">
               <button
                 @click="exportAsPDF"
-                class="inline-flex items-center px-4 py-2 rounded-md text-button font-medium text-white bg-purple hover:bg-purple-dark focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] transition-all duration-200 min-h-[44px] shadow-border hover:shadow-md"
+                class="inline-flex items-center px-4 py-2 rounded-md text-button font-medium text-white bg-purple hover:bg-purple-dark focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_var(--border-color),0px_0px_0px_4px_var(--ring)] transition-all duration-200 min-h-[44px] shadow-border hover:shadow-md"
               >
                 Export as PDF
               </button>
               <button
                 @click="saveQuote"
-                class="inline-flex items-center px-4 py-2 rounded-md text-button font-medium text-purple-text bg-white border border-purple hover:bg-purple/5 focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_rgba(0,0,0,0.08),0px_0px_0px_4px_rgba(147,197,253,0.5)] transition-all duration-200 min-h-[44px] shadow-border hover:shadow-md"
+                class="inline-flex items-center px-4 py-2 rounded-md text-button font-medium text-purple-text bg-bg-primary border border-purple hover:bg-purple/5 focus:outline-focus focus:ring-0 focus:shadow-[0px_0px_0px_1px_var(--border-color),0px_0px_0px_4px_var(--ring)] transition-all duration-200 min-h-[44px] shadow-border hover:shadow-md"
               >
                 Save Quote
               </button>
