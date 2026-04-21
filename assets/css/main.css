@@ -1,6 +1,6 @@
-/* Define CSS variables for theming */
+/* Define default CSS variables for theming - these will be updated dynamically by JavaScript */
 :root {
-  /* Light Theme Colors */
+  /* Default Light Theme Colors (will be overridden by themeManager) */
   --bg-primary: #ffffff;
   --bg-secondary: #f8f5ff;
   --text-primary: #171717;
@@ -14,42 +14,6 @@
   --warning: #de1d8d;
   --error: #ff5b4f;
   --link: #0072f5;
-}
-
-/* Dark Theme Colors */
-[data-theme="dark"] {
-  --bg-primary: #171717;
-  --bg-secondary: #222222;
-  --text-primary: #ffffff;
-  --text-secondary: #cccccc;
-  --text-tertiary: #aaaaaa;
-  --border-color: rgba(255,255,255,0.1);
-  --primary-color: #8B5CF6;
-  --primary-color-dark: #7C3AED;
-  --primary-color-light: #312E47;
-  --success: #60a5fa;
-  --warning: #fbbf24;
-  --error: #f87171;
-  --link: #93c5fd;
-}
-
-/* System Theme Preference (respects OS setting) */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg-primary: #171717;
-    --bg-secondary: #222222;
-    --text-primary: #ffffff;
-    --text-secondary: #cccccc;
-    --text-tertiary: #aaaaaa;
-    --border-color: rgba(255,255,255,0.1);
-    --primary-color: #8B5CF6;
-    --primary-color-dark: #7C3AED;
-    --primary-color-light: #312E47;
-    --success: #60a5fa;
-    --warning: #fbbf24;
-    --error: #f87171;
-    --link: #93c5fd;
-  }
 }
 
 /* Base theming for all elements */
