@@ -19,44 +19,6 @@ const formatCurrency = (amount: number): string => {
   })
 }
 
-// Helper function to extract and replace cost values in markdown quote
-const updateQuoteWithCurrentCosts = (originalQuote: string, currentCosts: any): string => {
-  if (!originalQuote) return originalQuote
-  
-  let updatedQuote = originalQuote
-  
-  // Replace total cost in various formats that might appear in the quote
-  const totalCostPatterns = [
-    /RM\s*\d+(?:,\d+)*(?:\.\d+)?/gi, // RM 12,345 or RM12345
-    /\$\s*\d+(?:,\d+)*(?:\.\d+)?/gi,  // $ 12,345 or $12345  
-    /\d+(?:,\d+)*(?:\.\d+)?\s*RM/gi,  // 12,345 RM
-    /\d+(?:,\d+)*(?:\.\d+)?\s*\$/gi   // 12,345 $
-  ]
-  
-  // For now, we'll replace the main total cost reference
-  // In a more sophisticated implementation, we could parse the quote structure
-  // and replace individual line items
-  
-  // Look for patterns like "total of RM X,XXX" or "RM X,XXX in total"
-  const totalCostRegex = /(total.*?of|in total|total cost|grand total)[^\d]*RM\s*\d+(?:,\d+)*/gi
-  if (totalCostRegex.test(updatedQuote)) {
-    updatedQuote = updatedQuote.replace(
-      totalCostRegex, 
-      `$1 ${formatCurrency(currentCosts.totalCost)}`
-    )
-  }
-  
-  // Also look for standalone RM amounts that might be totals
-  const standaloneRMRegex = /RM\s*\d+(?:,\d+)*/g
-  const matches = updatedQuote.match(standaloneRMRegex)
-  if (matches && matches.length === 1) {
-    // If there's only one RM amount, it's likely the total
-    updatedQuote = updatedQuote.replace(standaloneRMRegex, formatCurrency(currentCosts.totalCost))
-  }
-  
-  return updatedQuote
-}
-
 export default defineEventHandler(async (event) => {
   try {
     const body = await readRawBody(event)
@@ -135,8 +97,8 @@ export default defineEventHandler(async (event) => {
     doc.text(quoteData.requirements || 'No requirements specified')
     doc.moveDown(2)
     
-    // Professional Quote (if available) - with updated costs
-    if (quoteData.markdownQuote) {
+    // Professional Quote Details (now using requirementsAnalysis)
+    if (quoteData.requirementsAnalysis && Array.isArray(quoteData.requirementsAnalysis) && quoteData.requirementsAnalysis.length > 0) {
       doc.fontSize(16)
         .fillColor('#7c3aed')
         .font('Helvetica-Bold')
@@ -146,101 +108,261 @@ export default defineEventHandler(async (event) => {
         .font('Helvetica')
         .moveDown(0.5)
       
-      // Update the quote with current cost values
-      const updatedQuote = updateQuoteWithCurrentCosts(quoteData.markdownQuote, quoteData)
+      // Create Requirements Analysis table
+      const tableTop = doc.y
+      const columnWidths = [120, 80, 70, 60, 90] // Widths for Description, Category, Complexity, Hours, Cost (MYR)
+      const rowHeight = 20
+      const tableWidth = columnWidths.reduce((sum, w) => sum + w, 0)
+      const startX = (doc.page.width - tableWidth) / 2
       
-      // Simple markdown to text conversion (basic)
-      let cleanQuote = updatedQuote
-        .replace(/#/g, '') // Remove headers
-        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
-        .replace(/\*(.*?)\*/g, '$1') // Remove italic
-        .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+      // Group requirements by category
+      const categories = new Map<string, any[]>()
+      quoteData.requirementsAnalysis.forEach(item => {
+        const category = item.category || 'General'
+        if (!categories.has(category)) {
+          categories.set(category, [])
+        }
+        categories.get(category).push(item)
+      })
       
-      doc.text(cleanQuote)
-      doc.moveDown(2)
+      // Render each category section
+      for (const [category, items] of categories) {
+        // Category header
+        doc.fillColor('#f9f5ff')
+        const categoryY = doc.y
+        doc.rect(startX, categoryY, tableWidth, rowHeight).fill()
+        doc.fillColor('#7c3aed')
+        doc.font('Helvetica-Bold')
+        doc.fontSize(12)
+        doc.text(category, startX + 5, categoryY + 5, { bold: true })
+        
+        let currentY = categoryY + rowHeight
+        
+        // Header row for this category
+        doc.fillColor('#f3f4f6')
+        doc.rect(startX, currentY, tableWidth, rowHeight).fill()
+        doc.fillColor('#7c3aed')
+        doc.font('Helvetica-Bold')
+        doc.fontSize(10)
+        doc.text('Description', startX + 5, currentY + 5, { width: columnWidths[0] - 10 })
+        doc.text('Complexity', startX + columnWidths[0] + 5, currentY + 5, { width: columnWidths[1] - 10, align: 'center' })
+        doc.text('Hours', startX + columnWidths[0] + columnWidths[1] + 5, currentY + 5, { width: columnWidths[2] - 10, align: 'center' })
+        doc.text('Cost (RM)', startX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, currentY + 5, { width: columnWidths[3] + columnWidths[4] - 10, align: 'right' })
+        
+        currentY += rowHeight
+        
+        // Item rows
+        items.forEach(item => {
+          doc.fillColor('white')
+          doc.rect(startX, currentY, tableWidth, rowHeight).fill()
+          doc.fillColor('black')
+          doc.font('Helvetica')
+          doc.fontSize(10)
+          
+          // Description column - wrap text if needed
+          const desc = item.description || 'N/A'
+          if (desc.length > 60) {
+            const words = desc.split(' ')
+            let line = ''
+            let lineNum = 0
+            words.forEach(word => {
+              if ((line + word).length > 45 && line !== '') {
+                if (lineNum < 2) {
+                  doc.text(line, startX + 5, currentY + 5 + (lineNum * 12))
+                  line = word
+                  lineNum++
+                }
+              } else {
+                line += (line ? ' ' : '') + word
+              }
+            })
+            if (line && lineNum < 3) {
+              doc.text(line, startX + 5, currentY + 5 + (lineNum * 12))
+            }
+          } else {
+            doc.text(desc, startX + 5, currentY + 5, { width: columnWidths[0] - 10 })
+          }
+          
+          // Complexity column
+          const complexity = item.complexityScore || 1
+          const complexityLabel = complexity <= 2 ? 'Low' : complexity <= 4 ? 'Medium' : 'High'
+          doc.text(complexityLabel, startX + columnWidths[0] + 5, currentY + 5, { width: columnWidths[1] - 10, align: 'center' })
+          
+          // Hours column
+          const hours = item.hours || 0
+          doc.text(hours.toString(), startX + columnWidths[0] + columnWidths[1] + 5, currentY + 5, { width: columnWidths[2] - 10, align: 'center' })
+          
+          // Cost column
+          const cost = item.costMYR || 0
+          doc.text(
+            formatCurrency(cost),
+            startX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, 
+            currentY + 5,
+            { width: columnWidths[3] + columnWidths[4] - 10, align: 'right' }
+          )
+          
+          currentY += rowHeight
+        })
+        
+        // Add subtotal for category if multiple items
+        if (items.length > 1) {
+          const categoryTotal = items.reduce((sum, item) => sum + (item.costMYR || 0), 0)
+          doc.fillColor('#f9f5ff')
+          doc.rect(startX, currentY, tableWidth, rowHeight).fill()
+          doc.fillColor('#7c3aed')
+          doc.font('Helvetica-Bold')
+          doc.fontSize(11)
+          doc.text('Category Total:', startX + 5, currentY + 5, { width: columnWidths[0] + columnWidths[1] + columnWidths[2] - 5 })
+          doc.text(
+            formatCurrency(categoryTotal),
+            startX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, 
+            currentY + 5,
+            { width: columnWidths[3] + columnWidths[4] - 10, align: 'right' }
+          )
+          doc.fillColor('black')
+          doc.font('Helvetica')
+          doc.fontSize(12)
+          currentY += rowHeight
+        }
+        
+        doc.moveDown(0.5)
+      }
+      
+      // Calculate grand total
+      const grandTotal = quoteData.requirementsAnalysis.reduce((sum, item) => sum + (item.costMYR || 0), 0)
+      
+      // Grand total row
+      doc.fillColor('#f3f4f6')
+      const totalY = currentY
+      doc.rect(startX, totalY, tableWidth, rowHeight).fill()
+      doc.fillColor('black')
+      doc.font('Helvetica-Bold')
+      doc.fontSize(13)
+      doc.text('GRAND TOTAL', startX + 5, totalY + 5)
+      doc.text(
+        formatCurrency(grandTotal),
+        startX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, 
+        totalY + 5,
+        { width: columnWidths[3] + columnWidths[4] - 10, align: 'right' }
+      )
+      doc.font('Helvetica')
+      doc.fontSize(12)
+      
+      currentY = totalY + rowHeight + 15
+      
+      // Update totalCost if not already set
+      if (!quoteData.totalCost) {
+        quoteData.totalCost = grandTotal
+      }
+    } else {
+      // Fallback to markdownQuote if requirementsAnalysis not available
+      if (quoteData.markdownQuote) {
+        doc.fontSize(16)
+          .fillColor('#7c3aed')
+          .font('Helvetica-Bold')
+          .text('PROFESSIONAL QUOTATION DETAILS')
+          .fontSize(12)
+          .fillColor('black')
+          .font('Helvetica')
+          .moveDown(0.5)
+        
+        // Simple markdown to text conversion (basic)
+        let cleanQuote = quoteData.markdownQuote
+          .replace(/#/g, '') // Remove headers
+          .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+          .replace(/\*(.*?)\*/g, '$1') // Remove italic
+          .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+        
+        doc.text(cleanQuote)
+        doc.moveDown(2)
+      }
     }
     
-    // Cost Breakdown - always use current user-adjusted values
-    doc.fontSize(16)
-      .fillColor('#7c3aed')
-      .font('Helvetica-Bold')
-      .text('COST BREAKDOWN')
-      .fontSize(12)
-      .fillColor('black')
-      .font('Helvetica')
-      .moveDown(0.5)
-    
-    // Create table manually since PDFKit doesn't have built-in tables
-    const tableTop = doc.y
-    const columnWidths = [150, 100, 60, 100] // Widths for each column
-    const rowHeight = 20
-    const tableWidth = columnWidths.reduce((sum, w) => sum + w, 0)
-    const startX = (doc.page.width - tableWidth) / 2
-    
-    // Header row
-    doc.fillColor('#f9f5ff')
-    doc.rect(startX, tableTop, tableWidth, rowHeight).fill()
-    doc.fillColor('#7c3aed')
-    doc.font('Helvetica-Bold')
-    doc.fontSize(11)
-    doc.text('Role', startX + 5, tableTop + 5)
-    doc.text('Daily Rate (RM)', startX + columnWidths[0] + 5, tableTop + 5, { align: 'right' })
-    doc.text('Days', startX + columnWidths[0] + columnWidths[1] + 5, tableTop + 5, { align: 'right' })
-    doc.text('Total (RM)', startX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, tableTop + 5, { align: 'right' })
-    doc.font('Helvetica')
-    doc.fontSize(12)
-    doc.fillColor('black')
-    
-    let currentY = tableTop + rowHeight
-    
-    // Data rows - using current user-adjusted values
-    const roles = [
-      { name: 'Technical Lead / Architect', data: quoteData.costBreakdown?.technicalLead },
-      { name: 'Senior Developer', data: quoteData.costBreakdown?.seniorDev },
-      { name: 'UI/UX Designer', data: quoteData.costBreakdown?.uiux },
-      { name: 'QA/Testing', data: quoteData.costBreakdown?.qa }
-    ]
-    
-    roles.forEach(role => {
-      doc.text(role.name, startX + 5, currentY + 5)
+    // Cost Breakdown - legacy fallback if costBreakdown exists but requirementsAnalysis doesn't
+    if (quoteData.costBreakdown && (!quoteData.requirementsAnalysis || quoteData.requirementsAnalysis.length === 0)) {
+      doc.fontSize(16)
+        .fillColor('#7c3aed')
+        .font('Helvetica-Bold')
+        .text('COST BREAKDOWN')
+        .fontSize(12)
+        .fillColor('black')
+        .font('Helvetica')
+        .moveDown(0.5)
+      
+      // Create table manually since PDFKit doesn't have built-in tables
+      const tableTop = doc.y
+      const columnWidths = [150, 100, 60, 100] // Widths for each column
+      const rowHeight = 20
+      const tableWidth = columnWidths.reduce((sum, w) => sum + w, 0)
+      const startX = (doc.page.width - tableWidth) / 2
+      
+      // Header row
+      doc.fillColor('#f9f5ff')
+      doc.rect(startX, tableTop, tableWidth, rowHeight).fill()
+      doc.fillColor('#7c3aed')
+      doc.font('Helvetica-Bold')
+      doc.fontSize(11)
+      doc.text('Role', startX + 5, tableTop + 5)
+      doc.text('Daily Rate (RM)', startX + columnWidths[0] + 5, tableTop + 5, { align: 'right' })
+      doc.text('Days', startX + columnWidths[0] + columnWidths[1] + 5, tableTop + 5, { align: 'right' })
+      doc.text('Total (RM)', startX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, tableTop + 5, { align: 'right' })
+      doc.font('Helvetica')
+      doc.fontSize(12)
+      doc.fillColor('black')
+      
+      let currentY = tableTop + rowHeight
+      
+      // Data rows - using current user-adjusted values
+      const roles = [
+        { name: 'Technical Lead / Architect', data: quoteData.costBreakdown?.technicalLead },
+        { name: 'Senior Developer', data: quoteData.costBreakdown?.seniorDev },
+        { name: 'UI/UX Designer', data: quoteData.costBreakdown?.uiux },
+        { name: 'QA/Testing', data: quoteData.costBreakdown?.qa }
+      ]
+      
+      roles.forEach(role => {
+        if (role.data) {
+          doc.text(role.name, startX + 5, currentY + 5)
+          doc.text(
+            (role.data?.rate || 0).toLocaleString(), 
+            startX + columnWidths[0] + 5, 
+            currentY + 5,
+            { align: 'right' }
+          )
+          doc.text(
+            (role.data?.days || 0).toString(), 
+            startX + columnWidths[0] + columnWidths[1] + 5, 
+            currentY + 5,
+            { align: 'right' }
+          )
+          doc.text(
+            (role.data?.cost || 0).toLocaleString(), 
+            startX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, 
+            currentY + 5,
+            { align: 'right' }
+          )
+          currentY += rowHeight
+        }
+      })
+      
+      // Total row
+      doc.fillColor('#f3f4f6')
+      doc.rect(startX, currentY, tableWidth, rowHeight).fill()
+      doc.fillColor('black')
+      doc.font('Helvetica-Bold')
+      doc.fontSize(14)
+      doc.text('TOTAL', startX + 5, currentY + 5)
       doc.text(
-        (role.data?.rate || 0).toLocaleString(), 
-        startX + columnWidths[0] + 5, 
-        currentY + 5,
-        { align: 'right' }
-      )
-      doc.text(
-        (role.data?.days || 0).toString(), 
-        startX + columnWidths[0] + columnWidths[1] + 5, 
-        currentY + 5,
-        { align: 'right' }
-      )
-      doc.text(
-        (role.data?.cost || 0).toLocaleString(), 
+        (quoteData.totalCost || 0).toLocaleString(), 
         startX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, 
         currentY + 5,
         { align: 'right' }
       )
-      currentY += rowHeight
-    })
-    
-    // Total row
-    doc.fillColor('#f3f4f6')
-    doc.rect(startX, currentY, tableWidth, rowHeight).fill()
-    doc.fillColor('black')
-    doc.font('Helvetica-Bold')
-    doc.fontSize(14)
-    doc.text('TOTAL', startX + 5, currentY + 5)
-    doc.text(
-      (quoteData.totalCost || 0).toLocaleString(), 
-      startX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, 
-      currentY + 5,
-      { align: 'right' }
-    )
-    doc.font('Helvetica')
-    doc.fontSize(12)
-    
-    currentY += rowHeight + 20
+      doc.font('Helvetica')
+      doc.fontSize(12)
+      
+      currentY += rowHeight + 20
+    }
     
     // Footer note
     doc.fontSize(10)
